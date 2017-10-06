@@ -1,0 +1,2133 @@
+/*
+ * ===========================================
+ * unittest-utilities
+ * ===========================================
+ *
+ * Project Info:  https://github.com/Lonzak/unittest-utilities
+ * 
+ * (C) Copyright 2012-2017 nepatec GmbH & Co. KG
+ *
+ *  This file is part of unittest-utilities
+ *
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+package net.lonzak.common.unittest;
+
+import java.awt.Button;
+import java.awt.Color;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.awt.image.ImageObserver;
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.SecureRandom;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.sql.Blob;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.EmptyStackException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
+import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialException;
+
+import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
+
+/**
+ * Class which automatically tests DTO / Entity style classes.<p>
+ * Also Exception classes may be tested. The following things are tested:
+ * <ul>
+ * <li>instantiation of all constructors</li>
+ * <li>getter and setter methods (a call to set should return the value in the get method)</li>
+ * <li>equals() and hashCode() methods (a change of an attribute must result in different hashCodes())</li>
+ * <li>toString() method</li>
+ * </ul>
+ *
+ * The values used for testing are randomly generated. There are different possibilities to adapt the default behavior, so it is possible to pass specific values along or to skip certain attributes.
+ *
+ * @author TvT
+ *
+ */
+public final class AutoTester {
+	
+	private static Random r = new Random(System.nanoTime());
+	private static boolean enableWarnings = true;
+
+	//only static methods thus no instantiation
+	private AutoTester(){
+	}
+	
+	/**
+	 * Automatically tests an DTO/Entity/Java Bean style or Exception class.
+	 * 
+	 * @param dtoClass to test
+	 * @throws AssertionError if test fails
+	 */
+	public static void testDTOClass(Class<?> dtoClass){
+		testDTOClass(dtoClass, new ArrayList<Class<?>>(), new ArrayList<String>(), SpecialValueLocator.NONE);
+	}
+	
+	/**
+	 * Tests a DTO/Entity/Java Bean style or Exception class.
+	 * Please note, that all values which are used for the tests are randomly generated.
+	 * In case the default test method {@link #testDTOClass(Class)} fails there are several options:
+	 * 
+	 * <ul>
+	 * <li>1. provide specific values for certain parameters (e.g. special string formatting, specific numbers ...)</li>
+	 * <li>2. provide implementations for abstract parameters (e.g. ArrayList for List )</li>
+	 * <li>3. exclude certain attributes of the class and thus the corresponding getter/setter methods</li>
+	 * </ul>
+	 * 
+	 * <b>1. Special Values usage</b><p>
+	 * Additionally a special valueLocator can be specified which is able to pass values used for testing.<p>
+     * The identification of an attribute is as follows, for example:<p>
+     * A class has two constructors:
+     * <pre>
+     * {@code}
+     * class A {
+     *   A(String a){...}
+     *   A(String a, String b) {...}
+     * 
+     * </pre>
+     * To target the first value of the first constructor (the order is the order as the constructors are defined in the file) use:<p>
+     *  <code>new SpecialValueLocator(new Location(1,1),"value");</code><p>
+     * To target the second parameter of the second constructor:<p>
+     *  <code>new SpecialValueLocator(new Location(2,2),"value");</code>
+	 *
+	 * 
+	 * If for some reason some attributes should be ignored a list of 'ignorePropertiesForGetSetTest' can be specified.
+	 * 
+	 * @param dtoClass the class to test
+	 * @param implOfAbstractClasses In case the class to test contains abstract parameters a list with implementation classes could be specified.
+	 * @param ignorePropertiesForGetSetTest the name of the attribute which should be excluded
+	 * @param specialValues for the constructors/set methods to use
+	 */
+	public static void testDTOClass(Class<?> dtoClass, List<Class<?>> implOfAbstractClasses, List<String> ignorePropertiesForGetSetTest, SpecialValueLocator specialValues){
+		if(implOfAbstractClasses==null) implOfAbstractClasses = new ArrayList<Class<?>>();
+		if(ignorePropertiesForGetSetTest==null) ignorePropertiesForGetSetTest = new ArrayList<String>();
+		if(specialValues==null) specialValues = SpecialValueLocator.NONE;
+			  
+		//abstract classes or interfaces can not be instantiated
+		if(Modifier.isAbstract(dtoClass.getModifiers())) throw new AssertionError(dtoClass.getSimpleName()+" is an abstract class or an interface and can thus not be instantiated. Use on of its subclasses instead!");
+		
+		//Enum classes do not need to (and also can't) be tested 
+		if(dtoClass.isEnum()) throw new AssertionError(dtoClass.getSimpleName()+" is an enum class and does not need to be tested!");
+		
+		//check whether equals and hashCode was overwritten
+		boolean equalsExists = classImplementsEquals(dtoClass);
+		boolean hashCodeExists = classImlementsHashCode(dtoClass);
+		
+		if(equalsExists == !hashCodeExists){
+			throw new AssertionError(dtoClass.getSimpleName()+" implements only one method: equals(Object o) or hashCode(). This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
+		}
+		
+		try{
+			//create all constructors and check equals
+			HashMap<Object, Object> constructors = createObjects(dtoClass, implOfAbstractClasses, specialValues);
+			//create all set methods and call them for each constructor
+			if(equalsExists && hashCodeExists){
+				checkEqualsAndHashCode(dtoClass, constructors, implOfAbstractClasses, specialValues);
+			}
+			checkGettersAndSetters(dtoClass, constructors, implOfAbstractClasses, ignorePropertiesForGetSetTest, specialValues);
+			checkToString(dtoClass, constructors);
+		}
+		catch (IllegalArgumentException iae) {
+			throw new RuntimeException("An IllegalArgumentException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+iae.getMessage()+")",iae);		
+		}
+		catch (ClassNotFoundException cnfe) {
+			throw new RuntimeException("An ClassNotFoundException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+cnfe.getMessage()+")",cnfe);
+		}
+		catch (InstantiationException ie) {
+			throw new RuntimeException("An InstantiationException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+ie.getMessage()+")",ie);
+		}
+		catch (IllegalAccessException iae) {
+			throw new RuntimeException("An IllegalAccessException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+iae.getMessage()+")",iae);
+		}
+		catch (InvocationTargetException ite) {
+			throw new RuntimeException("An InvocationTargetException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+ite.getMessage()+")",ite);
+		}
+	}
+	
+	/**
+	 * Enable warnings
+	 * @return true if warnings are enabled otherwise false
+	 */
+	public static boolean isEnableWarnings() {
+		return AutoTester.enableWarnings;
+	}
+
+	/**
+	 * En-or disable the warnings
+	 * @param enableWarnings true to enable warnings and false to disable
+	 */
+	public static void setEnableWarnings(boolean enableWarnings) {
+		AutoTester.enableWarnings = enableWarnings;
+	}
+
+	/**
+	 * Checks if the equals method works as expected.
+	 * 
+	 * @param dtoClass to test
+	 * @throws ClassNotFoundException 
+	 * @throws IllegalAccessException 
+	 * @throws InstantiationException 
+	 * @throws InvocationTargetException 
+	 * @throws IllegalArgumentException 
+	 * @throws  
+	 * @throws AssertionError if test fails
+	 */
+	@SuppressWarnings("rawtypes")
+	private static HashMap<Object, Object> createObjects(Class dtoClass, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
+		
+		//create return Map: two objects for each constructor
+		HashMap<Object, Object> returnObjects = new HashMap<Object,Object>();
+		
+		//exclude java.lang.* classes because:
+		//otherwise all Integer, Float, String ... constructors will be called, filled with Random numbers etc.
+		//and it also crashes since the random numbers are invalid values for the constructors (numbers, size, index etc)
+		if(dtoClass.getName().startsWith("java.lang") && ClassUtils.getAllInterfaces(dtoClass).contains(Comparable.class)){
+			Class[] parameters = new Class[]{dtoClass};
+			Class[] paramListLeft = new Class[1];
+			Object[] argListLeft = new Object[1];
+			Class[] paramListRight = new Class[1];
+			Object[] argListRight = new Object[1];
+				
+			fillJavaLangType(parameters, paramListLeft, argListLeft, paramListRight, argListRight, 0, specialValues);
+			returnObjects.put(argListLeft[0], argListRight[0]);
+			return returnObjects;
+		}
+		else if(dtoClass.getName().startsWith("java.")){
+			Class[] parameters = new Class[]{dtoClass};
+			Class[] paramListLeft = new Class[1];
+			Object[] argListLeft = new Object[1];
+			Class[] paramListRight = new Class[1];
+			Object[] argListRight = new Object[1];
+				
+			fillSpecialObject(parameters, paramListLeft, argListLeft, paramListRight, argListRight, 0, specialValues);
+			returnObjects.put(argListLeft[0], argListRight[0]);
+			return returnObjects;
+		}
+		else if(Modifier.isAbstract(dtoClass.getModifiers())){
+			
+			Class<?> implementationClass=null;
+			
+			for(Class<?> clazz : implOfAbstractClasses){
+				//check for interfaces and abstract classes
+				List<Class<?>> superClasses = ClassUtils.getAllSuperclasses(clazz);
+				superClasses.addAll( ClassUtils.getAllInterfaces(clazz));
+				
+				if(superClasses.contains(dtoClass)){
+					implementationClass=clazz;
+					break;
+				}
+			}
+				
+			if(implementationClass==null){
+				throw new AssertionError("No implementation found for abstract class '"+dtoClass.getName()+"'. Please use the testDTOClass(Class<?>, List implementationsOfAbstractClasses) method and supply a suitable implementation.");
+			}
+			
+			//overwrite DTO class
+			dtoClass = implementationClass;
+		}
+
+		//only public constructors are relevant
+		List<Constructor> constructors =  new ArrayList<Constructor>(Arrays.asList(dtoClass.getConstructors()));
+
+		//check for constructors which are instantiated with the same class -> results in infinite loop
+		ArrayList<Constructor<?>> toBeRemoved = new ArrayList<Constructor<?>>();
+		for (Constructor constructor : constructors) {
+			
+			Class<?>[] parameters = constructor.getParameterTypes();
+			
+			for (int j = 0; j < parameters.length; j++) {
+				if(parameters[j].isAssignableFrom(dtoClass)){
+					toBeRemoved.add(constructor);
+				}
+			}
+		}
+		
+		if(!toBeRemoved.isEmpty()){
+			constructors.removeAll(toBeRemoved);
+		}
+		
+		//if object is not instantiable use private constructor
+		if(constructors.isEmpty()){
+			constructors=Arrays.asList(dtoClass.getDeclaredConstructors());
+		}
+		
+		try{
+			constructObjects(constructors, returnObjects, implOfAbstractClasses, specialValues);
+		}
+		catch(InvocationTargetException ite){
+			if(ite.getCause() instanceof NumberFormatException || ite.getTargetException() instanceof IllegalArgumentException){
+				throw new InvocationTargetException(ite.getTargetException(),"It seems that the constructor of the class needs a special format. Try to use the special value mechanism!");
+			}
+			if(ite.getTargetException() instanceof NullPointerException){
+			  throw new InvocationTargetException(ite.getTargetException(),"There seems to be a problem while creating the object.");
+			}
+			else{
+				throw ite;
+			}
+		}
+		return returnObjects;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static void checkEqualsAndHashCode(Class dtoClass, HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
+		
+		//first check equality on all constructed objects
+		Set<Entry<Object,Object>> consts = constructedObjects.entrySet();
+
+		for (Entry entry : consts) {
+			Object constLeft = entry.getKey();
+			Object constRight = entry.getValue();
+			executeEquals(constLeft, constRight);
+		}
+		
+		//second check if equals and hashCode are correctly implemented:
+		//call a setter method and verify that different hashCodes result in unequal objects and the same hashCode results in equal objects
+		Method[] methods = dtoClass.getMethods();
+		
+		try{
+			constructSetMethodsAndCheckEquals(dtoClass, constructedObjects, methods, implOfAbstractClasses, specialValues);
+		}
+		catch(InvocationTargetException ite){
+			if(ite.getCause() instanceof NumberFormatException){
+			  throw new InvocationTargetException(ite, "It seems that the class needs a special format. Try to use the special value mechanism!");
+			}
+			if(ite.getTargetException() instanceof NullPointerException){
+              throw new InvocationTargetException(ite.getTargetException(), "The check equals() or hashCode() seems to have a problem. Check the implementation!");
+            }
+			else{
+				throw ite;
+			}
+		}
+	}
+	
+	private static void checkGettersAndSetters(Class<?> dtoClass, HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses, List<String> propertiesToIgnore, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
+
+		//all public methods are relevant
+		List<Method> publicMethods = Arrays.asList(dtoClass.getMethods());
+		
+		//all protected methods are relevant
+		ArrayList<Method> allMethods = getInheritedProtectedMethods(dtoClass);
+		
+		//merge into one array
+		allMethods.addAll(publicMethods);
+		
+		
+		// remove the ignoredProperties
+		List<Method> toRemove = new ArrayList<Method>();
+		for (Method current : allMethods) {
+			if (current.getName().startsWith("get") || current.getName().startsWith("set")) {
+				String name = current.getName().substring(3);
+				
+				name = name.subSequence(0, 1).toString().toLowerCase() + name.substring(1);
+				if (propertiesToIgnore.contains(name)) {
+					toRemove.add(current);
+				}
+			}
+		}
+		
+		for (Method method : toRemove) {
+			allMethods.remove(method);
+		}
+		
+		
+		try{
+			constructSetMethods(dtoClass, constructedObjects, allMethods, implOfAbstractClasses, specialValues);
+		}
+		catch(InvocationTargetException ite){
+			if(ite.getCause() instanceof NumberFormatException){
+			  throw new InvocationTargetException(ite, "It seems that the class needs a special format. Try to use the special value mechanism!");
+			}
+			if(ite.getTargetException() instanceof NullPointerException){
+              throw new InvocationTargetException(ite.getTargetException(), "There seems to be a problem with a getter or setter method. Check your implementation.");
+            }
+			else{
+				throw ite;
+			}
+		}
+	}
+	
+	private static void checkToString(Class<?> dtoClass, HashMap<Object, Object> constructors) throws IllegalAccessException,InvocationTargetException {
+
+	  try{
+		//only public methods are relevant
+		Method[] methods = dtoClass.getMethods();
+		
+		for (int i = 0; i < methods.length; i++) {
+			
+			//call toString method if overridden
+			if(methods[i].getName().startsWith("toString") && methods[i].getDeclaringClass().equals(dtoClass)){
+				Method method = methods[i];
+				
+				Class<?>[] parameters = method.getParameterTypes();
+				Class<?> returnType = method.getReturnType();
+				
+				//<String toString()> has no parameter and String as return value
+				if(parameters.length==0 && returnType.isAssignableFrom(String.class)){
+				  
+					//call method for every constructed constructor
+					Set<Entry<Object,Object>> consts = constructors.entrySet();
+					
+					for (Entry<Object, Object> entry : consts) {
+						Object constLeft = entry.getKey();
+						Object constRight = entry.getValue();
+						
+						//invoke toString
+						Object returnLeft = method.invoke(constLeft,(Object[])null);
+						Object returnRight = method.invoke(constRight,(Object[])null);
+						
+						//result of toString() should be equals, too
+						executeEquals(returnLeft,returnRight);
+					}
+				}
+				else{
+					System.err.println(dtoClass.getSimpleName()+" does not overwrite the object <String toString()> method although it has a <'"+returnType.getSimpleName()+" "+ method.getName()+"> method!");
+				}
+			}
+		}
+	  }
+	  catch(InvocationTargetException ite){
+	    if(ite.getTargetException() instanceof NullPointerException){
+	      throw new InvocationTargetException(ite.getTargetException(),"A NullpointerException occured which indicates that a bug was found in the 'toString()' method.");
+	    }
+	  }
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static void fillPrimitiveType(Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
+		//primitive types
+		if(parameters[parameterIndex].isAssignableFrom(byte.class)){
+			paramListLeft[parameterIndex] = Byte.TYPE;
+			paramListRight[parameterIndex] = Byte.TYPE;
+			
+			Byte b;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              b =  (Byte)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              b = getRandomByte();
+            }
+			
+			argListLeft[parameterIndex]= b;
+			argListRight[parameterIndex]= b;
+		}
+		else if(parameters[parameterIndex].isAssignableFrom(short.class)){
+			paramListLeft[parameterIndex] = Short.TYPE;
+			paramListRight[parameterIndex] = Short.TYPE;
+			
+			Short s;
+			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+			  s =  (Short)specialValues.getSpecialValue(parameterIndex+1);
+			}
+			else{
+			  s = getRandomShort();
+			}
+			argListLeft[parameterIndex]= s;
+			argListRight[parameterIndex]= s;
+		}
+		else if(parameters[parameterIndex].isAssignableFrom(int.class)){
+			paramListLeft[parameterIndex] = Integer.TYPE;
+			paramListRight[parameterIndex] = Integer.TYPE;
+			
+			Integer in;
+			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+			  in = (Integer)specialValues.getSpecialValue(parameterIndex+1);
+			}
+			else{
+			  in = getRandomInteger();
+			}
+			argListLeft[parameterIndex]= in; 
+			argListRight[parameterIndex]= in;
+		}
+		else if(parameters[parameterIndex].isAssignableFrom(long.class)){
+			paramListLeft[parameterIndex] = Long.TYPE;
+			paramListRight[parameterIndex] = Long.TYPE;
+			
+			Long l;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              l = (Long)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              l = getRandomLong();
+            }
+			
+			argListLeft[parameterIndex]= l;
+			argListRight[parameterIndex]= l;
+		}
+		else if(parameters[parameterIndex].isAssignableFrom(float.class)){
+			paramListLeft[parameterIndex] = Float.TYPE;
+			paramListRight[parameterIndex] = Float.TYPE;
+
+			Float f;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              f = (Float)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              f = getRandomFloat();
+            }
+			
+			argListLeft[parameterIndex]= f;  
+			argListRight[parameterIndex]= f;
+		}
+		else if(parameters[parameterIndex].isAssignableFrom(double.class)){
+			paramListLeft[parameterIndex] = Double.TYPE;
+			paramListRight[parameterIndex] = Double.TYPE;
+			
+			Double d;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              d = (Double)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              d = getRandomDouble();
+            }
+			
+			argListLeft[parameterIndex]= d;
+			argListRight[parameterIndex]= d;
+		}
+		else if(parameters[parameterIndex].isAssignableFrom(boolean.class)){
+			paramListLeft[parameterIndex] = Boolean.TYPE;
+			paramListRight[parameterIndex] = Boolean.TYPE;
+			
+			Boolean b;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              b = (Boolean)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              b = getRandomBoolean();
+            }
+			
+			argListLeft[parameterIndex]= b;
+			argListRight[parameterIndex]= b;
+		}
+		else if(parameters[parameterIndex].isAssignableFrom(char.class)){
+			paramListLeft[parameterIndex] = Character.TYPE;
+			paramListRight[parameterIndex] = Character.TYPE;
+			
+			Character c;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              c = (Character)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              c = getRandomCharacter();
+            }
+			
+			argListLeft[parameterIndex]= c;
+			argListRight[parameterIndex]= c;
+		}
+		else{
+			throw new AssertionError("Unknown primitive java type: "+parameters[parameterIndex].getName());
+		}
+	}
+	
+	/**
+	 * 
+	 * @param parameters
+	 * @param paramListLeft
+	 * @param argListLeft
+	 * @param paramListRight
+	 * @param argListRight
+	 * @param parameterIndex
+	 * @param specialValues
+	 * @return true if the data type could be filled otherwise false
+	 */
+	@SuppressWarnings("rawtypes")
+	private static boolean fillJavaLangType(Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
+		
+		//check String
+	    if(parameters[parameterIndex].isAssignableFrom(String.class)){
+			paramListLeft[parameterIndex] = String.class;
+			paramListRight[parameterIndex] = String.class;
+			
+			String s;
+			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+			  s = (String)specialValues.getSpecialValue(parameterIndex+1);
+			}
+			else{
+			  s = getRandomString();
+			}
+			argListLeft[parameterIndex]= s;
+			argListRight[parameterIndex]= s;
+		}
+		//objects of primitive types
+	    else if(parameters[parameterIndex].isAssignableFrom(Byte.class)){
+			paramListLeft[parameterIndex] = Byte.class;
+			paramListRight[parameterIndex] = Byte.class;
+			
+			Byte b;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              b = (Byte)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              b = getRandomByte();
+            }
+			
+			argListLeft[parameterIndex]= b;
+			argListRight[parameterIndex]= b;
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Short.class)){
+			paramListLeft[parameterIndex] = Short.class;
+			paramListRight[parameterIndex] = Short.class;
+			
+			Short s;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              s = (Short)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              s = getRandomShort();
+            }
+			
+			argListLeft[parameterIndex]= s;
+			argListRight[parameterIndex]= s;
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Integer.class)){
+			paramListLeft[parameterIndex] = Integer.class;
+			paramListRight[parameterIndex] = Integer.class;
+			
+			Integer in;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              in = (Integer)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              in = getRandomInteger();
+            }
+			
+			argListLeft[parameterIndex]= in; 
+			argListRight[parameterIndex]= in;
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Long.class)){
+			paramListLeft[parameterIndex] = Long.class;
+			paramListRight[parameterIndex] = Long.class;
+			
+			Long l;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              l = (Long)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              l = getRandomLong();
+            }
+			
+			argListLeft[parameterIndex]= l;
+			argListRight[parameterIndex]= l;
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Float.class)){
+			paramListLeft[parameterIndex] = Float.class;
+			paramListRight[parameterIndex] = Float.class;
+			
+			Float f;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              f = (Float)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              f = getRandomFloat();
+            }
+			argListLeft[parameterIndex]= f;  
+			argListRight[parameterIndex]= f;
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Double.class)){
+			paramListLeft[parameterIndex] = Double.class;
+			paramListRight[parameterIndex] = Double.class;
+			
+			Double d;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              d = (Double)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              d = getRandomDouble();
+            }
+			argListLeft[parameterIndex]= d;
+			argListRight[parameterIndex]= d;
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Boolean.class)){
+			paramListLeft[parameterIndex] = Boolean.class;
+			paramListRight[parameterIndex] = Boolean.class;
+			
+			Boolean b;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              b = (Boolean)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              b = getRandomBoolean();
+            }
+			argListLeft[parameterIndex]= b;
+			argListRight[parameterIndex]= b;
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Character.class)){
+			paramListLeft[parameterIndex] = Character.class;
+			paramListRight[parameterIndex] = Character.class;
+			
+			Character c;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              c = (Character)specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              c = getRandomCharacter();
+            }
+			argListLeft[parameterIndex]= c;
+			argListRight[parameterIndex]= c;
+		}
+		else{
+			return false;
+		}
+		return true;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static void fillArray(Class<?>[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	  
+		//primitive Arrays 
+	   if(parameters[parameterIndex].isAssignableFrom(int[].class)){
+			paramListLeft[parameterIndex] = int[].class;
+			paramListRight[parameterIndex] = int[].class;
+			
+			int [] in;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              in = (int[])specialValues.getSpecialValue(parameterIndex+1+1);
+            }
+            else{
+              in = getRandomIntArrayPrimitive();
+            }
+			
+			argListLeft[parameterIndex]= in;
+			argListRight[parameterIndex]= in.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(long[].class)){
+			paramListLeft[parameterIndex] = long[].class;
+			paramListRight[parameterIndex] = long[].class;
+			
+			long [] l;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              l = (long[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              l = getRandomLongArrayPrimitive();
+            }
+			
+			argListLeft[parameterIndex]= l;
+			argListRight[parameterIndex]= l.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(float[].class)){
+			paramListLeft[parameterIndex] = float[].class;
+			paramListRight[parameterIndex] = float[].class;
+			
+			float [] f;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              f = (float[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              f = getRandomFloatArrayPrimitive();
+            }
+			
+			argListLeft[parameterIndex]= f;
+			argListRight[parameterIndex]= f.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(double[].class)){
+			paramListLeft[parameterIndex] = double[].class;
+			paramListRight[parameterIndex] = double[].class;
+			
+			double [] d;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              d = (double[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              d = getRandomDoubleArrayPrimitive();
+            }
+			
+			argListLeft[parameterIndex]= d;
+			argListRight[parameterIndex]= d.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(boolean[].class)){
+			paramListLeft[parameterIndex] = boolean[].class;
+			paramListRight[parameterIndex] = boolean[].class;
+			
+			boolean [] b;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              b = (boolean[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              b = getRandomBooleanArrayPrimitive();
+            }
+			
+			argListLeft[parameterIndex]= b;
+			argListRight[parameterIndex]= b.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(byte[].class)){
+			paramListLeft[parameterIndex] = byte[].class;
+			paramListRight[parameterIndex] = byte[].class;
+			
+			byte [] b;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              b = (byte[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              b = getRandomByteArrayPrimitive();
+            }
+			argListLeft[parameterIndex]= b;
+			argListRight[parameterIndex]= b.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(short[].class)){
+			paramListLeft[parameterIndex] = short[].class;
+			paramListRight[parameterIndex] = short[].class;
+			
+			short [] s;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              s = (short[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              s = getRandomShortArrayPrimitive();
+            }
+			
+			argListLeft[parameterIndex]= s;
+			argListRight[parameterIndex]= s.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(char[].class)){
+			paramListLeft[parameterIndex] = char[].class;
+			paramListRight[parameterIndex] = char[].class;
+			
+			char [] c;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              c= (char[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              c = getRandomCharArrayPrimitive();
+            }
+			argListLeft[parameterIndex]= c;
+			argListRight[parameterIndex]= c.clone();
+		}
+		
+		//object Arrays 
+	    else if(parameters[parameterIndex].isAssignableFrom(Integer[].class)){
+			paramListLeft[parameterIndex] = Integer[].class;
+			paramListRight[parameterIndex] = Integer[].class;
+			
+			Integer [] in;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              in= (Integer[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              in = getRandomIntegerArray();
+            }
+			argListLeft[parameterIndex]= in;
+			argListRight[parameterIndex]= in.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Long[].class)){
+			paramListLeft[parameterIndex] = Long[].class;
+			paramListRight[parameterIndex] = Long[].class;
+			
+			Long [] l;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              l= (Long[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              l = getRandomLongArray();
+            }
+			argListLeft[parameterIndex]= l;
+			argListRight[parameterIndex]= l.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Float[].class)){
+			paramListLeft[parameterIndex] = Float[].class;
+			paramListRight[parameterIndex] = Float[].class;
+			
+			Float [] f;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              f= (Float[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              f = getRandomFloatArray();
+            }
+			argListLeft[parameterIndex]= f;
+			argListRight[parameterIndex]= f.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Double[].class)){
+			paramListLeft[parameterIndex] = Double[].class;
+			paramListRight[parameterIndex] = Double[].class;
+			
+			Double [] d;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              d= (Double[])specialValues.getSpecialValue(parameterIndex+1+1);
+            }
+            else{
+              d = getRandomDoubleArray();
+            }
+			argListLeft[parameterIndex]= d;
+			argListRight[parameterIndex]= d.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Boolean[].class)){
+			paramListLeft[parameterIndex] = Boolean[].class;
+			paramListRight[parameterIndex] = Boolean[].class;
+			
+			Boolean [] b;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              b = (Boolean[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              b = getRandomBooleanArray();
+            }
+			argListLeft[parameterIndex]= b;
+			argListRight[parameterIndex]= b.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Byte[].class)){
+			paramListLeft[parameterIndex] = Byte[].class;
+			paramListRight[parameterIndex] = Byte[].class;
+			
+			Byte [] b;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              b = (Byte[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              b = getRandomByteArray();
+            }
+			argListLeft[parameterIndex]= b;
+			argListRight[parameterIndex]= b.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Short[].class)){
+			paramListLeft[parameterIndex] = Short[].class;
+			paramListRight[parameterIndex] = Short[].class;
+			
+			Short [] s;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              s = (Short[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              s = getRandomShortArray();
+            }
+			argListLeft[parameterIndex]= s;
+			argListRight[parameterIndex]= s.clone();
+		}
+	    else if(parameters[parameterIndex].isAssignableFrom(Character[].class)){
+			paramListLeft[parameterIndex] = Character[].class;
+			paramListRight[parameterIndex] = Character[].class;
+			
+			Character [] c;
+            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+              c = (Character[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              c = getRandomCharacterArray();
+            }
+			argListLeft[parameterIndex]= c;
+			argListRight[parameterIndex]= c.clone();
+		}
+		else if(parameters[parameterIndex].getName().startsWith("[[")){
+			throw new AssertionError("Multidimensional Arrays are not supported yet:"+parameters[parameterIndex].getName());
+		}
+		else{
+			//object array
+			paramListLeft[parameterIndex] = Class.forName(parameters[parameterIndex].getName());
+			paramListRight[parameterIndex] = Class.forName(parameters[parameterIndex].getName());
+			
+			//detect object type
+			Class<?> arrayType = ((Class<?>)types[parameterIndex]).getComponentType();
+
+			//create objects for the array
+			HashMap<Object, Object> map = createObjects(Class.forName(arrayType.getName()), implOfAbstractClasses, specialValues);
+			Iterator<Entry<Object,Object>> entries = map.entrySet().iterator();
+			
+			Object[] leftList;
+			Object[] rightList;
+			
+			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+			  leftList = (Object[])specialValues.getSpecialValue(parameterIndex+1);
+			  rightList = (Object[])specialValues.getSpecialValue(parameterIndex+1);
+            }
+            else{
+              leftList = (Object[])Array.newInstance(arrayType,map.size());
+              rightList = (Object[])Array.newInstance(arrayType,map.size());
+              
+              for(int i=0; entries.hasNext();i++){
+                Entry entry = entries.next();
+                leftList[i]=entry.getKey();
+                rightList[i]=entry.getValue();
+              }
+            }
+				
+			argListLeft[parameterIndex]= leftList;
+			argListRight[parameterIndex]= rightList;
+		}
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static void fillEnum(Class[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues) throws ClassNotFoundException{
+		//Enums can not be instantiated
+		Class object = Class.forName(parameters[parameterIndex].getName());
+		Object[] objects = object.getEnumConstants();
+		
+		//randomly select value
+        int enumValue = getRandomInt(objects.length);
+		
+        paramListLeft[parameterIndex] = objects[enumValue].getClass();
+        paramListRight[parameterIndex] = objects[enumValue].getClass();
+		
+		if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+          argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+          argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+        }
+        else{
+          argListLeft[parameterIndex]= objects[enumValue];
+          argListRight[parameterIndex]= objects[enumValue];
+        }
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private static void fillCollections(Class[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+		
+		Class parameter = parameters[parameterIndex];
+		
+		paramListLeft[parameterIndex] = Class.forName(parameter.getName());
+		paramListRight[parameterIndex] = Class.forName(parameter.getName());
+
+		if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+          argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+          argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+		}
+		else{
+		  
+	        Collection leftList;
+	        Collection rightList;
+    		//concrete Collection class will be instantiated
+    		if(!parameter.isInterface()){
+    			leftList = (Collection)paramListLeft[parameterIndex].newInstance();
+    			rightList = (Collection)paramListRight[parameterIndex].newInstance();
+    		}
+    		else if(parameter.isAssignableFrom(List.class)){
+    			//default implementation for List = ArrayList
+    			leftList = new ArrayList();
+    			rightList = new ArrayList();
+    		}
+    		else if(parameter.isAssignableFrom(Set.class)){
+    			//default implementation for List = HashSet
+    			leftList = new HashSet();
+    			rightList = new HashSet();
+    		}
+    		else if(parameter.isAssignableFrom(Queue.class)){
+    			//default implementation for List = PriorityQueue
+    			leftList = new PriorityQueue();
+    			rightList = new PriorityQueue();
+    		}
+    		else{
+    			throw new AssertionError("Unsupported Collection type:"+parameter.getName());
+    		}
+    				
+    		ParameterizedType type = (ParameterizedType) types[parameterIndex];
+    		//retrieve type of class, in a java.util.List there is only one type thus use [0]
+    		Class<?> type2 = (Class<?>)type.getActualTypeArguments()[0];
+    		
+    		//create objects for the List
+    		HashMap<Object, Object> map = createObjects(Class.forName(type2.getName()), implOfAbstractClasses, specialValues);
+    		Set<Entry<Object,Object>> entries = map.entrySet();
+    					
+    		for(Entry entry : entries){
+    				
+    			//classes of SortedSet must implement comparable interface
+    			if(ClassUtils.getAllInterfaces(parameter).contains(SortedSet.class) && !ClassUtils.getAllInterfaces(entry.getKey().getClass()).contains(Comparable.class)){
+    				throw new AssertionError("The class ("+entry.getKey().getClass().getName()+") which is used in a SortedSet ("+parameter.getName()+") must implement the Comparable interface!");
+    			}
+    				
+    			leftList.add(entry.getKey());
+    			rightList.add(entry.getValue());
+    		}
+    		argListLeft[parameterIndex]= leftList;
+    		argListRight[parameterIndex]= rightList;	
+		}
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private static void fillMaps(Class<?>[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+		
+		Class parameter = parameters[parameterIndex];
+		
+		paramListLeft[parameterIndex] = Class.forName(parameter.getName());
+		paramListRight[parameterIndex] = Class.forName(parameter.getName());
+		
+		if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+          argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+          argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+        }
+        else{
+		
+    		Map leftList;
+    		Map rightList;
+    		
+    		//concrete Map class will be instantiated
+    		if(!parameter.isInterface()){
+    			leftList = (Map)paramListLeft[parameterIndex].newInstance();
+    			rightList = (Map)paramListRight[parameterIndex].newInstance();
+    		}
+    		else {
+    			//default implementation for Map = HashMap
+    			leftList = new HashMap();
+    			rightList = new HashMap();
+    		}
+    				
+    		//retrieve types of the classes <key,value>
+    		//key
+    		ParameterizedType type = (ParameterizedType) types[parameterIndex];
+    		Class<?> keyType = (Class<?>)type.getActualTypeArguments()[0];
+    		//value
+    		Class<?> valueType = (Class<?>)type.getActualTypeArguments()[1];
+    		
+    		//create objects for the Map
+    		HashMap<Object, Object> values = createObjects(Class.forName(valueType.getName()), implOfAbstractClasses, specialValues );
+    		Set<Entry<Object,Object>> entriesV = values.entrySet();
+    
+    		for(Entry entryV : entriesV){
+    
+    			HashMap<Object, Object> keys = createObjects(Class.forName(keyType.getName()), implOfAbstractClasses, specialValues);
+    			Set<Entry<Object,Object>> entriesK = keys.entrySet();
+    
+    			for (Entry entryK : entriesK) {
+    				
+    				//classes of SortedMap keys must implement comparable interface
+    				if(ClassUtils.getAllInterfaces(parameter).contains(SortedMap.class) && !ClassUtils.getAllInterfaces(entryK.getKey().getClass()).contains(Comparable.class)){
+    					throw new AssertionError("The key class ("+entryK.getKey().getClass().getName()+") which is used in a SortedMap ("+parameter.getName()+") must implement the Comparable interface!");
+    				}
+    				
+    				leftList.put(entryK.getKey(),entryV.getKey());
+    				rightList.put(entryK.getValue(),entryV.getValue());
+    				break;
+    			}
+    		}
+    				    
+    		argListLeft[parameterIndex]= leftList;
+    		argListRight[parameterIndex]= rightList;
+        }
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static void fillObject(Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+		//Is a normal object
+		Class<?> object = Class.forName(parameters[parameterIndex].getName());
+			
+		//recursively check equals
+		HashMap<Object, Object> map = createObjects(object, implOfAbstractClasses,specialValues);
+		Set<Entry<Object,Object>> entries = map.entrySet();
+			
+		for(Entry entry : entries){
+			paramListLeft[parameterIndex] = entry.getKey().getClass();
+			paramListRight[parameterIndex] = entry.getValue().getClass();
+			
+			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+	          argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+	          argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+	        }
+	        else{
+    			argListLeft[parameterIndex]= entry.getKey();
+    			argListRight[parameterIndex]= entry.getValue();
+    			
+    			//1st condition: calling equals on URL objects is not a good idea cp. http://javaantipatterns.wordpress.com/2007/11/24/comparing-urls-with-urlequals
+    			//2nd condition: If a class does not override equals then don't call it otherwise objects with the same values are not equals
+    			if(!object.isAssignableFrom(URL.class) && classImplementsEquals(entry.getKey().getClass())){
+    				//since only one pair is taken also check equals here:
+    				executeEquals(entry.getKey(), entry.getValue());
+    			}
+	        }
+		}
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static void fillSpecialObject(Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
+		try{
+		  
+		  if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+		    paramListLeft[parameterIndex] = specialValues.getSpecialValue(parameterIndex+1).getClass();
+            paramListRight[parameterIndex] = specialValues.getSpecialValue(parameterIndex+1).getClass();
+		    
+            argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+            argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+          }
+          else{
+            if(parameters[parameterIndex].isAssignableFrom(URL.class)){
+				paramListLeft[parameterIndex] = URL.class;
+				paramListRight[parameterIndex] = URL.class;
+				
+				URL url = new URL("http://www."+getRandomString()+".de");
+				
+				argListLeft[parameterIndex]= url;
+				argListRight[parameterIndex]= url;
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(URI.class)){
+				paramListLeft[parameterIndex] = URI.class;
+				paramListRight[parameterIndex] = URI.class;
+				
+				URI uri = new URI("file://C:/"+getRandomString()+".txt");
+				
+				argListLeft[parameterIndex]= uri;
+				argListRight[parameterIndex]= uri;
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(Date.class)){
+				paramListLeft[parameterIndex] = Date.class;
+				paramListRight[parameterIndex] = Date.class;
+				
+				Date date = new Date(System.currentTimeMillis());
+				
+				argListLeft[parameterIndex]= date;
+				argListRight[parameterIndex]= date.clone();
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(Calendar.class)){
+				paramListLeft[parameterIndex] = Calendar.class;
+				paramListRight[parameterIndex] = Calendar.class;
+				
+				Calendar cal = Calendar.getInstance();
+				
+				argListLeft[parameterIndex]= cal;
+				argListRight[parameterIndex]= cal.clone();
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(Serializable.class)){
+				paramListLeft[parameterIndex] = Serializable.class;
+				paramListRight[parameterIndex] = Serializable.class;
+				
+				Serializable ser = getRandomString();
+				
+				argListLeft[parameterIndex]= ser;
+				argListRight[parameterIndex]= ser;
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(BigDecimal.class)){
+				paramListLeft[parameterIndex] = BigDecimal.class;
+				paramListRight[parameterIndex] = BigDecimal.class;
+				
+				BigDecimal ser = getRandomBigDecimal();
+				
+				argListLeft[parameterIndex]= ser;
+				argListRight[parameterIndex]= ser;
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(Color.class)){
+				paramListLeft[parameterIndex] = Color.class;
+				paramListRight[parameterIndex] = Color.class;
+				
+				float red= r.nextFloat();
+				float green= r.nextFloat();
+				float blue= r.nextFloat();
+				
+				argListLeft[parameterIndex]= new Color(red,green,blue);
+				argListRight[parameterIndex]= new Color(red,green,blue);
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(Image.class)){
+				paramListLeft[parameterIndex] = Image.class;
+				paramListRight[parameterIndex] = Image.class;
+				
+				argListLeft[parameterIndex]= new BufferedImage(256, 256,BufferedImage.TYPE_INT_RGB);
+				argListRight[parameterIndex]= new BufferedImage(256, 256,BufferedImage.TYPE_INT_RGB);
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(ImageObserver.class)){
+				paramListLeft[parameterIndex] = ImageObserver.class;
+				paramListRight[parameterIndex] = ImageObserver.class;
+				
+				argListLeft[parameterIndex]= new Button("Button");
+				argListRight[parameterIndex]= new Button("Button");
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(KeyStore.class)){
+				paramListLeft[parameterIndex] = KeyStore.class;
+				paramListRight[parameterIndex] = KeyStore.class;
+				
+				KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+				
+				argListLeft[parameterIndex]= ks;
+				argListRight[parameterIndex]= ks;
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(PrivateKey.class)){
+				paramListLeft[parameterIndex] = PrivateKey.class;
+				paramListRight[parameterIndex] = PrivateKey.class;
+				
+				KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+				SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+				keyGen.initialize(512, random);
+				
+				KeyPair pair = keyGen.generateKeyPair();
+				PrivateKey priv = pair.getPrivate();
+				
+				argListLeft[parameterIndex]= priv;
+				argListRight[parameterIndex]= priv;
+			}
+            else if(parameters[parameterIndex].isAssignableFrom(Certificate.class)){
+				paramListLeft[parameterIndex] = Certificate.class;
+				paramListRight[parameterIndex] = Certificate.class;
+				
+				//alternative way to get a certificate, however need to access com.sun.* classes
+				//argListLeft[j]= new X509CertImpl();
+				//argListRight[j]= new X509CertImpl();
+				argListLeft[parameterIndex]= readCertificate();
+				argListRight[parameterIndex]= readCertificate();
+				
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(X509Certificate.class)){
+				paramListLeft[parameterIndex] = X509Certificate.class;
+				paramListRight[parameterIndex] = X509Certificate.class;
+				
+				//alternative way to get a certificate, however need to access com.sun.* classes
+				//argListLeft[j]= new X509CertImpl();
+				//argListRight[j]= new X509CertImpl();
+				argListLeft[parameterIndex]= readCertificate();
+				argListRight[parameterIndex]= readCertificate();
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(Pattern.class)){
+			
+				paramListLeft[parameterIndex] = Pattern.class;
+				paramListRight[parameterIndex] = Pattern.class;
+				
+				argListLeft[parameterIndex]= Pattern.compile(".");
+				argListRight[parameterIndex]= Pattern.compile(".");
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(StringBuilder.class)){
+			
+				paramListLeft[parameterIndex] = StringBuilder.class;
+				paramListRight[parameterIndex] = StringBuilder.class;
+				
+				String rnd = getRandomString(); 
+				
+				argListLeft[parameterIndex]= new StringBuilder(rnd);
+				argListRight[parameterIndex]= new StringBuilder(rnd);
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(StringBuffer.class)){
+			    paramListLeft[parameterIndex] = StringBuffer.class;
+				paramListRight[parameterIndex] = StringBuffer.class;
+				
+				String rnd = getRandomString(); 
+				
+				argListLeft[parameterIndex]= new StringBuffer(rnd);
+				argListRight[parameterIndex]= new StringBuffer(rnd);
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(InputStream.class)){
+			    paramListLeft[parameterIndex] = InputStream.class;
+				paramListRight[parameterIndex] = InputStream.class;
+				
+				byte[] rnd = getRandomByteArrayPrimitive();
+				
+				argListLeft[parameterIndex]= new ByteArrayInputStream(rnd);
+				argListRight[parameterIndex]= new ByteArrayInputStream(rnd);
+				
+				if(enableWarnings){
+					System.err.println("Warning: There is an InputStream parameter. A random inputstream is created however if a specific file is expected this will probably fail. Maybe in future the Tester will be extended to support this.");
+				}
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(Blob.class)){
+				paramListLeft[parameterIndex] = Blob.class;
+				paramListRight[parameterIndex] = Blob.class;
+				
+				byte[] rnd = getRandomByteArrayPrimitive(); 
+				
+				try {
+					argListLeft[parameterIndex]= new SerialBlob(rnd);
+					argListRight[parameterIndex]= new SerialBlob(rnd);
+				}
+				catch (SerialException e) {
+					throw new RuntimeException("Error creating random Blob: "+e.getMessage(),e);
+				}
+				catch (SQLException e) {
+					throw new RuntimeException("Error creating random Blob!"+e.getMessage(),e);
+				}
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(StackTraceElement.class)){
+			  paramListLeft[parameterIndex] = StackTraceElement.class;
+              paramListRight[parameterIndex] = StackTraceElement.class;
+              
+              String declaringClass = getRandomString();
+              String methodName = getRandomString();
+              String fileName = getRandomString();
+              int line = getRandomInt();
+              
+              argListLeft[parameterIndex]= new StackTraceElement(declaringClass,methodName,fileName,line);
+              argListRight[parameterIndex]= new StackTraceElement(declaringClass,methodName,fileName,line);
+			}
+			else{
+				throw new AssertionError("Unsupported class: "+parameters[parameterIndex].getName()+" - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
+			}
+          }
+		}
+		catch (URISyntaxException use) {
+			throw new RuntimeException("Error creating URI due to: "+use.getMessage(),use);
+		}
+		catch (NoSuchAlgorithmException nsae) {
+			throw new RuntimeException("Error creating Keystore due to: "+nsae.getMessage(),nsae);
+		}
+		catch (MalformedURLException mue) {
+			throw new RuntimeException("Error creating URL due to: "+mue,mue);
+		}
+		catch (KeyStoreException kse) {
+			throw new RuntimeException("Error creating Keystore due to: "+kse.getMessage(),kse);
+		}
+	}
+	
+	private static void fillEverything(Class<?>[] parameters, Type[] types, Object[] argListLeft, Object[] argListRight, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+		Class<?>[] paramListLeft = new Class[parameters.length];
+		Class<?>[] paramListRight = new Class[parameters.length];
+		
+		for (int j = 0; j < parameters.length; j++) {
+			
+			//detect the different types
+			if(parameters[j].isPrimitive()){
+				fillPrimitiveType(parameters, paramListLeft, argListLeft, paramListRight, argListRight, j, specialValues);
+			}
+			else if(parameters[j].isArray()){
+				fillArray(parameters, types, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses, specialValues);
+			}
+			else if(parameters[j].isEnum()){
+				fillEnum(parameters, paramListLeft, argListLeft, paramListRight, argListRight, j, specialValues);
+			}
+			//check for primitive Object types like Integer, Long, Float etc. and String
+			else if(fillJavaLangType(parameters, paramListLeft, argListLeft, paramListRight, argListRight, j, specialValues)){
+				continue;
+			}
+			else if(parameters[j].equals(Collection.class) || ClassUtils.getAllInterfaces(parameters[j]).contains(Collection.class)){
+				fillCollections(parameters, types, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses,specialValues);
+			}
+			else if(parameters[j].equals(Map.class) || ClassUtils.getAllInterfaces(parameters[j]).contains(Map.class)){
+				fillMaps(parameters, types, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses,specialValues);
+			}
+			else{
+				fillObject(parameters, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses,specialValues);
+			}
+		}
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static void constructObjects(List<Constructor> constructors, HashMap<Object, Object> returnObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws InvocationTargetException, ClassNotFoundException, InstantiationException, IllegalAccessException{
+		
+		for (int i=0; i<constructors.size(); i++) {
+		    Constructor constructor = constructors.get(i);
+		  
+		    //in case special values need to be set
+		    specialValues.setCurrentConstructorIndex(i+1);
+			
+		    Class<?>[] parameters = constructor.getParameterTypes();
+			
+			//if no public constructor was available use private one (cp. comment above) and make it accessible
+			//constructor.getModifiers()==Modifier.PRIVATE || constructor.getModifiers()==Modifier.PROTECTED ||
+			if(!constructor.isAccessible()){
+				constructor.setAccessible(true);
+			}
+			
+			Object newObjLeft;
+			Object newObjRight;
+			
+			//handle no-argument constructors differently otherwise an exception is thrown
+			if(parameters.length>0){
+				Object[] argListLeft=new Object[parameters.length];
+				Object[] argListRight=new Object[parameters.length];
+				
+				Type[] types = constructor.getGenericParameterTypes();
+				fillEverything(parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
+				
+				//call constructor
+				newObjLeft = constructor.newInstance(argListLeft);
+				newObjRight = constructor.newInstance(argListRight);
+			}
+			else{
+				//call constructor
+				newObjLeft = constructor.newInstance();
+				newObjRight = constructor.newInstance();
+			}
+				
+			//return newly created objects
+			returnObjects.put(newObjLeft,newObjRight);
+		}
+	}
+	
+	private static void constructSetMethodsAndCheckEquals(Class<?> dtoClass, HashMap<Object, Object> constructedObjects, Method[] methods, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+		for (int i = 0; i < methods.length; i++) {
+			
+			if(methods[i].getName().startsWith("set")){
+				
+				Method method = methods[i];
+				
+				Class<?>[] parameters = method.getParameterTypes();
+				Type[] types = method.getGenericParameterTypes();
+				
+				Object[] argListLeft = new Object[parameters.length];
+				Object[] argListRight = new Object[parameters.length];
+				
+				fillEverything(parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
+
+				//call method for every constructed constructor
+				Set<Entry<Object,Object>> consts = constructedObjects.entrySet();
+				
+				for (Entry<Object, Object> entry : consts) {
+					Object constLeft = entry.getKey();
+					Object constRight = entry.getValue();
+					
+					//extract old value for comparison with new to see if it was changed
+					ExtractionValue oldHashCode = extractValueFromHashCode(dtoClass, constLeft);
+
+					//only continue when the hashCode could be extracted
+					if(!oldHashCode.isCouldExtractValue()){
+						if(enableWarnings){
+							System.err.println(dtoClass.getSimpleName()+": The "+dtoClass.getSimpleName()+" has no 'int hashCode()' method thus it is skipped!");
+						}
+						continue;
+					}
+					
+					//invoke one setter
+					method.invoke(constLeft,argListLeft);
+					
+					ExtractionValue newHashCode=extractValueFromHashCode(dtoClass, constLeft);
+					
+					//setter changed hashCode thus should also change result of equals
+					if(objectHasChanged(oldHashCode.getExtractedValue(), newHashCode.getExtractedValue())){
+						if(!objectHasChanged(constLeft, constRight)){
+							throw new AssertionError("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") and the hashCode did change however the result of equals did not! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
+						}
+					}
+					else{
+						if(objectHasChanged(constLeft, constRight)){
+							throw new AssertionError("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") and the hashCode did not change however the result of equals did! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
+						}
+					}
+					
+					//also invoke one other object to keep objects the same
+					method.invoke(constRight,argListRight);
+				}
+			}
+		}
+	}
+	
+	private static void constructSetMethods(Class<?> dtoClass, HashMap<Object, Object> constructedObjects, ArrayList<Method> allMethods, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+		for (Method method : allMethods) {
+			
+			if(method.getName().startsWith("set")){
+
+				Class<?>[] parameters = method.getParameterTypes();
+				
+				//check that it is a 'simple' setters with one parameter
+				if(parameters.length>1){
+					if(enableWarnings){
+						System.err.println(dtoClass.getSimpleName()+": The "+method.getName()+" has more than one parameter thus it is skipped. Only <field>, <setField(...)>, <getField()> type methods, following the java beans code convention, are supported!");
+					}
+					continue;
+				}
+				
+				Object[] argListLeft = new Object[parameters.length];
+				Object[] argListRight = new Object[parameters.length];
+				
+				Type[] types = method.getGenericParameterTypes();
+				
+				fillEverything(parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
+
+				//call set method for every constructed constructor
+				Set<Entry<Object,Object>> consts = constructedObjects.entrySet();
+				
+				for (Entry<Object, Object> entry : consts) {
+					Object constLeft = entry.getKey();
+					Object constRight = entry.getValue();
+					
+					compareOldAndNew(dtoClass, method, argListLeft, constLeft);
+					compareOldAndNew(dtoClass, method, argListRight, constRight);
+				}
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * @param dtoClass
+	 * @param fields
+	 * @param method
+	 * @param constructedObject
+	 * @param value of the actual field
+	 * @returns true when the field could be found otherwise false
+	 * @throws IllegalArgumentException
+	 * @throws IllegalAccessException
+	 * @throws InvocationTargetException
+	 */
+	@SuppressWarnings("rawtypes")
+	private static ExtractionValue extractValueFromField(Class dtoClass, Method method, Object constructedObject) throws IllegalAccessException{
+		
+		Field[] fields = dtoClass.getDeclaredFields();
+		
+		//check if method has a corresponding field
+		for (int j = 0; j < fields.length; j++) {
+			if(StringUtils.uncapitalize(method.getName().substring(3)).equals(fields[j].getName())){
+				Field field = fields[j];
+				field.setAccessible(true);
+				return new ExtractionValue(true, field.get(constructedObject));
+			}
+		}
+		
+		//if no value is found in the direct class, check super classes
+		List<Field> inheritedFields = getInheritedFields(dtoClass);
+		
+		for(Field field : inheritedFields){
+			if(StringUtils.uncapitalize(method.getName().substring(3)).equals(field.getName())){
+				field.setAccessible(true);
+				return new ExtractionValue(true, field.get(constructedObject));
+			}
+		}
+		
+		return new ExtractionValue(false, null);
+	}
+	
+	/**
+	 * 
+	 * @param dtoClass
+	 * @param fields
+	 * @param method
+	 * @param constructedObject
+	 * @param returnValue of the getter method
+	 * @return true when the field could be found otherwise false
+	 * @throws IllegalArgumentException
+	 * @throws IllegalAccessException
+	 * @throws InvocationTargetException
+	 */
+	@SuppressWarnings("rawtypes")
+	private static ExtractionValue extractValueFromGetter(Class dtoClass, Method method, Object constructedObject) throws IllegalAccessException, InvocationTargetException{
+		
+		Method[] getter = dtoClass.getMethods();
+		for (int j = 0; j < getter.length; j++) {
+			if(getter[j].getName().equals("get"+method.getName().substring(3)) || getter[j].getName().equals("is"+method.getName().substring(3))){
+				try{
+					return new ExtractionValue(true, getter[j].invoke(constructedObject, (Object[])null));
+				}
+				catch(InvocationTargetException ite){
+					if(ite.getCause() instanceof EmptyStackException){
+						if(enableWarnings){
+							System.err.println("Warning @ "+dtoClass.getSimpleName()+": The "+method.getName()+" could not be invoked. The most probable reason is, that it relies on a different internal object which hasn't been instantiated yet. Thus it is skipped!");
+						}
+						return new ExtractionValue(false, null);
+					}
+					else if(ite.getCause() instanceof RuntimeException){
+						//TODO TvT: Special adaption for DocumentData.class -> when there is no DocumentCache a runtime exception is thrown
+						return new ExtractionValue(true, null);
+					}
+					else{
+						throw ite;
+					}
+				}
+			}
+		}
+		return new ExtractionValue(false, null);
+	}
+	
+	/**
+	 * 
+	 * @param dtoClass
+	 * @param fields
+	 * @param method
+	 * @param constructedObject
+	 * @param returnValue of the getter method
+	 * @return true when the field could be found otherwise false
+	 * @throws IllegalArgumentException
+	 * @throws IllegalAccessException
+	 * @throws InvocationTargetException
+	 */
+	@SuppressWarnings("rawtypes")
+	private static ExtractionValue extractValueFromHashCode(Class dtoClass, Object constructedObject) throws IllegalAccessException, InvocationTargetException{
+		
+		Method[] methods = dtoClass.getMethods();
+		for (int j = 0; j < methods.length; j++) {
+			if("hashCode".equals(methods[j].getName())){
+				if(Modifier.isPublic(methods[j].getModifiers())){
+					Class<?>[] parameters = methods[j].getParameterTypes();
+					if(parameters.length==0){
+						Class<?> returnType = methods[j].getReturnType();
+						if(returnType.isAssignableFrom(int.class)){
+							return new ExtractionValue(true, methods[j].invoke(constructedObject, (Object[])null));
+						}
+					}
+				}
+			}
+		}
+		return new ExtractionValue(false, null);
+	}
+	
+	private static void executeEquals(Object left, Object right){
+		
+		Object nill = null;
+		//equals to null
+		if(left.equals(nill) || right.equals(nill)){
+			throw new AssertionError("Error testEquals() - objects match null!");
+		}
+		//equals on itself
+		if(!left.equals(left) || !right.equals(right)){
+			throw new AssertionError("Error testEquals() - object isn't equals to itself!");
+		}
+		//equals on a different object
+		if(left.equals(new Object()) || right.equals(new Object())){
+			throw new AssertionError("Error testEquals() - object is equals to a different (totally unrelated) object!");
+		}
+		//equals to a different object with same values
+		if(!left.equals(right)){
+			throw new AssertionError("Objects should be equals but in fact they are not ("+left.getClass().getName()+")!");
+		}
+	}
+	
+	private static boolean objectHasChanged(Object left, Object right){
+		if(left == null && right==null){
+			return false;
+		}
+		else if(left == null || right == null){
+			return true;
+		}
+		else{
+			return !left.equals(right);
+		}
+	}
+	
+	private static void compareOldAndNew(Class<?> dtoClass, Method method, Object[] argList, Object constructor) throws IllegalAccessException, InvocationTargetException{
+		
+		//extract the old values for a later comparison (old=value after creating object with constrcutor)
+		ExtractionValue oldValueOfTheField = extractValueFromField(dtoClass, method, constructor);
+		ExtractionValue oldValueOfGetter = extractValueFromGetter(dtoClass, method, constructor);
+		
+		//invoke one setter on the left object
+		method.invoke(constructor,argList);
+		
+		//only continue when objects could be extracted
+		if(oldValueOfTheField.isCouldExtractValue()){
+			if(objectHasChanged(oldValueOfTheField.getExtractedValue(), argList[0])){
+				
+				//extract new value from
+				 ExtractionValue newValueOfTheField = extractValueFromField(dtoClass, method, constructor);
+				
+				if(!objectHasChanged(oldValueOfTheField.getExtractedValue(),newValueOfTheField.getExtractedValue())){
+					throw new AssertionError("Error @ "+dtoClass.getSimpleName()+": Called the setter ("+method.getName()+") but the corresponding field ("+StringUtils.uncapitalize(method.getName().substring(3))+") didn't change!");
+				}
+			}
+			else{
+				//extract new value from
+				ExtractionValue sameValueOfTheField = extractValueFromField(dtoClass, method, constructor);
+				
+				if(objectHasChanged(oldValueOfTheField.getExtractedValue(),sameValueOfTheField.getExtractedValue())){
+					throw new AssertionError("Error @ "+dtoClass.getSimpleName()+": Called the setter ("+method.getName()+") with the same value however the corresponding field ("+StringUtils.uncapitalize(method.getName().substring(3))+") now has a different value!");
+				}
+			}
+		}
+		else{
+			if(enableWarnings){
+				System.err.println("Warning @ "+dtoClass.getSimpleName()+": The "+method.getName()+" has no corresponding field ("+StringUtils.uncapitalize(method.getName().substring(3))+") thus it is skipped. Please follow the java beans code convention!");
+			}
+		}
+		
+		//only continue when getter could be extracted
+		if(oldValueOfGetter.isCouldExtractValue()){
+			if(objectHasChanged(oldValueOfGetter.getExtractedValue(), argList[0])){
+				ExtractionValue newValueOfGetter=extractValueFromGetter(dtoClass, method, constructor);
+				
+				if(!objectHasChanged(oldValueOfGetter.getExtractedValue(),newValueOfGetter.getExtractedValue())){
+					throw new AssertionError("Error @ "+dtoClass.getSimpleName()+": called the setter ("+method.getName()+") but the return value of the corresponding (get"+method.getName().substring(3)+") didn't change!");
+				}
+			}
+			else{
+				//extract new value from
+				ExtractionValue sameValueOfGetter =extractValueFromGetter(dtoClass, method, constructor);
+				
+				if(objectHasChanged(oldValueOfTheField.getExtractedValue(),sameValueOfGetter.getExtractedValue())){
+					throw new AssertionError("Error @ "+dtoClass.getSimpleName()+": called the setter ("+method.getName()+") with the same value however the corresponding (get"+method.getName().substring(3)+") now has a different value!");
+				}
+			}
+		}
+		else{
+			if(enableWarnings){
+				System.err.println("Warning @ "+dtoClass.getSimpleName()+": The "+method.getName()+" has no getter ("+"is/get"+method.getName().substring(3)+") thus it is skipped. Please follow the java beans code convention!");
+			}
+		}
+	}
+	
+	/**
+	 * Since getDeclaredFields() does not return inherited fields this method
+	 * recursively collects all super class fields and returns them. 
+	 * 
+	 * @param classToCheck
+	 * @return
+	 */
+	private static List<Field> getInheritedFields(Class<?> clazz) {
+		 List<Field> fields = new ArrayList<Field>();
+		 
+		 Class<?> classToCheck = clazz;
+		 
+		 while(classToCheck.getSuperclass()!=null){
+			 fields.addAll(Arrays.asList(classToCheck.getSuperclass().getDeclaredFields()));
+			 classToCheck=classToCheck.getSuperclass();
+		 }
+
+		 return fields;
+	}
+	
+	/**
+	 * Since getDeclaredFields() does not return inherited protected fields this method
+	 * recursively collects all super class fields and returns them. 
+	 * 
+	 * @param classToCheck
+	 * @return
+	 */
+	private static ArrayList<Method> getInheritedProtectedMethods(Class<?> clazz) {
+		ArrayList<Method> methods = new ArrayList<Method>();
+		ArrayList<Method> protectedMethods = new ArrayList<Method>();
+		 
+		Class<?> classToCheck = clazz;
+		
+		 //exclude Object methods. To include object protected methods change to: classToCheck!=null
+		 while(classToCheck.getSuperclass()!=null){
+			 methods.addAll(Arrays.asList(classToCheck.getDeclaredMethods()));
+			 classToCheck=classToCheck.getSuperclass();
+		 }
+		 
+		 //clear public and private methods
+		 for(Method method : methods){
+			 if(Modifier.isProtected(method.getModifiers())){
+				 method.setAccessible(true);
+				 protectedMethods.add(method);
+			 }
+		 }
+
+		 return protectedMethods;
+	 }
+	
+	private static boolean classImplementsEquals(Class<?> dtoClass){
+		//only public methods for the DTO class are relevant 
+		List<Method> methods = Arrays.asList(dtoClass.getDeclaredMethods()); 
+		
+		for (Method method : methods) {
+			//public boolean equals(Object o)
+			if("equals".equals(method.getName())){
+				if(Modifier.isPublic(method.getModifiers())){
+					Class<?>[] parameters = method.getParameterTypes();
+					if(parameters.length==1 && parameters[0].isAssignableFrom(Object.class)){
+						Class<?> returnType = method.getReturnType();
+						if(returnType.isAssignableFrom(boolean.class)){
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
+	
+	private static boolean classImlementsHashCode(Class<?> dtoClass){
+		
+		//only public methods for the DTO class are relevant 
+		List<Method> methods = Arrays.asList(dtoClass.getDeclaredMethods()); 
+		
+		for (Method method : methods) {
+			//public int hashCode() 
+			if("hashCode".equals(method.getName())){
+				if(Modifier.isPublic(method.getModifiers())){
+					Class<?>[] parameters = method.getParameterTypes();
+					if(parameters.length==0){
+						Class<?> returnType = method.getReturnType();
+						if(returnType.isAssignableFrom(int.class)){
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
+	
+	private static X509Certificate readCertificate(){
+		
+		X509Certificate cert = null;
+		InputStream inStream = null;
+		
+		try {
+			inStream = AutoTester.class.getResourceAsStream("/Test.cer");
+			CertificateFactory cf = CertificateFactory.getInstance("X.509");
+			cert = (X509Certificate)cf.generateCertificate(inStream);
+			inStream.close();
+			inStream=null;
+		}
+		catch (FileNotFoundException fnfe) {
+			throw new RuntimeException("Could not load example Certificate: "+fnfe.getMessage(),fnfe);
+		}
+		catch (CertificateException ce) {
+			throw new RuntimeException("Could not instantiate Certificate: "+ce.getMessage(),ce);
+		}
+		catch (IOException ioe) {
+			throw new RuntimeException("Could not load example Certificate: "+ioe.getMessage(),ioe);
+		}
+		finally{
+			if(inStream!=null){
+				try {
+					inStream.close();
+				}
+				catch (IOException e) {
+					//swallow to not overwrite original exception
+				}
+			}
+		}
+		
+		return cert;
+	}
+	
+	static Byte getRandomByte(){
+		byte[] b = new byte[1];
+		AutoTester.r.nextBytes(b);
+		return Byte.valueOf(b[0]);
+	}
+	
+	static byte[] getRandomByteArrayPrimitive(){
+		
+		byte[] b = new byte[r.nextInt(42)];
+		AutoTester.r.nextBytes(b);
+		
+		if(b.length>0){
+			//add EOF to the end (used e.g. for byteArrayInputStream)
+			b[b.length-1]=0xffffffff;
+		}
+		
+		return b;
+	}
+	
+	static Byte[] getRandomByteArray(){
+		byte[] b = new byte[r.nextInt(42)];
+		AutoTester.r.nextBytes(b);
+		
+		Byte[] objectByteArray = new Byte[b.length];
+		for(int i = 0; i < b.length; i++){
+			objectByteArray[i] = Byte.valueOf(b[i]);
+		}
+		return objectByteArray;
+	}
+	
+	static Integer getRandomInteger(){
+		return Integer.valueOf(AutoTester.r.nextInt());
+	}
+	
+	static int getRandomInt(){
+      return AutoTester.r.nextInt();
+    }
+	
+	static int getRandomInt(int n){
+		return AutoTester.r.nextInt(n);
+	}
+	
+	static String getRandomUnsignedIntAsString(int range){
+		return String.valueOf(Math.abs(AutoTester.r.nextInt(range)));
+	}
+	
+	static int[] getRandomIntArrayPrimitive(){
+		int[] b = new int[r.nextInt(42)];
+		
+		for(int i = 0; i < b.length; i++){
+			b[i] = getRandomInteger().intValue();
+		}
+		return b;
+	}
+	
+	static Integer[] getRandomIntegerArray(){
+		Integer[] b = new Integer[r.nextInt(42)];
+		
+		for(int i = 0; i < b.length; i++){
+			b[i] = getRandomInteger();
+		}
+		return b;
+	}
+	
+	static Float getRandomFloat(){
+		return Float.valueOf(AutoTester.r.nextFloat());
+	}
+	
+	static float[] getRandomFloatArrayPrimitive(){
+		float[] f = new float[r.nextInt(42)];
+		
+		for(int i = 0; i < f.length; i++){
+			f[i] = getRandomFloat().floatValue();
+		}
+		return f;
+	}
+	
+	static Float[] getRandomFloatArray(){
+		Float[] f = new Float[r.nextInt(42)];
+		
+		for(int i = 0; i < f.length; i++){
+			f[i] = getRandomFloat();
+		}
+		return f;
+	}
+	
+	static Double getRandomDouble(){
+		return Double.valueOf(AutoTester.r.nextDouble());
+	}
+	
+	static double[] getRandomDoubleArrayPrimitive(){
+		double[] d = new double[r.nextInt(42)];
+		
+		for(int i = 0; i < d.length; i++){
+			d[i] = getRandomDouble().doubleValue();
+		}
+		return d;
+	}
+	
+	static Double[] getRandomDoubleArray(){
+		Double[] d = new Double[r.nextInt(42)];
+		
+		for(int i = 0; i < d.length; i++){
+			d[i] = getRandomDouble();
+		}
+		return d;
+	}
+	
+	static Long getRandomLong(){
+		return Long.valueOf(AutoTester.r.nextLong());
+	}
+	
+	static long[] getRandomLongArrayPrimitive(){
+		long[] l = new long[r.nextInt(42)];
+		
+		for(int i = 0; i < l.length; i++){
+			l[i] = getRandomLong().longValue();
+		}
+		return l;
+	}
+	
+	static Long[] getRandomLongArray(){
+		Long[] l = new Long[r.nextInt(42)];
+		
+		for(int i = 0; i < l.length; i++){
+			l[i] = getRandomLong();
+		}
+		return l;
+	}
+	
+	static Boolean getRandomBoolean(){
+		return Boolean.valueOf(AutoTester.r.nextBoolean());
+	}
+	
+	static boolean[] getRandomBooleanArrayPrimitive(){
+		boolean[] l = new boolean[r.nextInt(42)];
+		
+		for(int i = 0; i < l.length; i++){
+			l[i] = getRandomBoolean().booleanValue();
+		}
+		return l;
+	}
+	
+	static Boolean[] getRandomBooleanArray(){
+		Boolean[] b = new Boolean[r.nextInt(42)];
+		
+		for(int i = 0; i < b.length; i++){
+			b[i] = getRandomBoolean();
+		}
+		return b;
+	}
+	
+	static Short getRandomShort(){
+		return Short.valueOf((short)(r.nextInt(Short.MIN_VALUE*(-2)) - Short.MIN_VALUE));
+	}
+	
+	static short[] getRandomShortArrayPrimitive(){
+		short[] s = new short[r.nextInt(42)];
+		
+		for(int i = 0; i < s.length; i++){
+			s[i] = getRandomShort().shortValue();
+		}
+		return s;
+	}
+	
+	static Short[] getRandomShortArray(){
+		Short[] s = new Short[r.nextInt(42)];
+		
+		for(int i = 0; i < s.length; i++){
+			s[i] = getRandomShort();
+		}
+		return s;
+	}
+	
+	static Character getRandomCharacter(){
+		return Character.valueOf((char)r.nextInt(Character.MAX_VALUE+1));
+	}
+	
+	static char[] getRandomCharArrayPrimitive(){
+		char[] c = new char[r.nextInt(42)];
+		
+		for(int i = 0; i < c.length; i++){
+			c[i] = getRandomCharacter().charValue();
+		}
+		return c;
+	}
+	
+	static Character[] getRandomCharacterArray(){
+		Character[] c = new Character[r.nextInt(42)];
+		
+		for(int i = 0; i < c.length; i++){
+			c[i] = getRandomCharacter();
+		}
+		return c;
+	}
+	
+	static String getRandomString(){
+		return UUID.randomUUID().toString();
+	}
+	
+	static BigDecimal getRandomBigDecimal(){
+		return new BigDecimal(Math.abs(r.nextInt(Integer.MAX_VALUE)));
+	}
+	
+	private static class ExtractionValue{
+		private boolean couldExtractValue;
+		private Object extractedValue;
+		
+		public ExtractionValue(boolean couldExtractValue, Object value){
+			this.couldExtractValue=couldExtractValue;
+			this.extractedValue=value;
+		}
+		public boolean isCouldExtractValue() {
+			return this.couldExtractValue;
+		}
+		public Object getExtractedValue() {
+			return this.extractedValue;
+		}
+    
+		@Override
+    public String toString() {
+      return "ExtractionValue [couldExtractValue=" + this.couldExtractValue + ", extractedValue=" + this.extractedValue + "]";
+    }
+		
+		
+	}
+}
