@@ -177,7 +177,7 @@ public final class AutoTester {
 		
 		try{
 			//create all constructors and check equals
-			HashMap<Object, Object> constructors = createObjects(dtoClass, implOfAbstractClasses, specialValues);
+			HashMap<Object, Object> constructors = createObjects(dtoClass, implOfAbstractClasses, specialValues,true);
 			//create all set methods and call them for each constructor
 			if(equalsExists && hashCodeExists){
 				checkEqualsAndHashCode(dtoClass, constructors, implOfAbstractClasses, specialValues);
@@ -222,6 +222,10 @@ public final class AutoTester {
 	 * Checks if the equals method works as expected.
 	 * 
 	 * @param dtoClass to test
+	 * @param implOfAbstractClasses
+	 * @param specialValues
+	 * @param allConstructors
+	 * 
 	 * @throws ClassNotFoundException 
 	 * @throws IllegalAccessException 
 	 * @throws InstantiationException 
@@ -231,7 +235,7 @@ public final class AutoTester {
 	 * @throws AssertionError if test fails
 	 */
 	@SuppressWarnings("rawtypes")
-	private static HashMap<Object, Object> createObjects(Class dtoClass, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
+	private static HashMap<Object, Object> createObjects(Class dtoClass, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues, boolean allConstructors) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		
 		//create return Map: two objects for each constructor
 		HashMap<Object, Object> returnObjects = new HashMap<Object,Object>();
@@ -310,7 +314,7 @@ public final class AutoTester {
 		}
 		
 		try{
-			constructObjects(constructors, returnObjects, implOfAbstractClasses, specialValues);
+			constructObjects(constructors, returnObjects, implOfAbstractClasses, specialValues,allConstructors);
 		}
 		catch(InvocationTargetException ite){
 			if(ite.getCause() instanceof NumberFormatException || ite.getTargetException() instanceof IllegalArgumentException){
@@ -976,7 +980,7 @@ public final class AutoTester {
 			Class<?> arrayType = ((Class<?>)types[parameterIndex]).getComponentType();
 
 			//create objects for the array
-			HashMap<Object, Object> map = createObjects(Class.forName(arrayType.getName()), implOfAbstractClasses, specialValues);
+			HashMap<Object, Object> map = createObjects(Class.forName(arrayType.getName()), implOfAbstractClasses, specialValues, true);
 			Iterator<Entry<Object,Object>> entries = map.entrySet().iterator();
 			
 			Object[] leftList;
@@ -1008,20 +1012,25 @@ public final class AutoTester {
 		Class object = Class.forName(parameters[parameterIndex].getName());
 		Object[] objects = object.getEnumConstants();
 		
-		//randomly select value
-        int enumValue = getRandomInt(objects.length);
-		
-        paramListLeft[parameterIndex] = objects[enumValue].getClass();
-        paramListRight[parameterIndex] = objects[enumValue].getClass();
-		
-		if(specialValues.getSpecialValue(parameterIndex+1)!=null){
-          argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
-          argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
-        }
-        else{
-          argListLeft[parameterIndex]= objects[enumValue];
-          argListRight[parameterIndex]= objects[enumValue];
-        }
+		if(objects.length>0){
+  		//randomly select value
+          int enumValue = getRandomInt(objects.length);
+  		
+          paramListLeft[parameterIndex] = objects[enumValue].getClass();
+          paramListRight[parameterIndex] = objects[enumValue].getClass();
+  		
+  		if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+            argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+          }
+          else{
+            argListLeft[parameterIndex]= objects[enumValue];
+            argListRight[parameterIndex]= objects[enumValue];
+          }
+		}
+		else{
+		  throw new IllegalArgumentException(object.getCanonicalName()+" is an empty enum and can thus not be tested. Add a value or exclude it from the tests.");
+		}
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -1069,7 +1078,7 @@ public final class AutoTester {
     		Class<?> type2 = (Class<?>)type.getActualTypeArguments()[0];
     		
     		//create objects for the List
-    		HashMap<Object, Object> map = createObjects(Class.forName(type2.getName()), implOfAbstractClasses, specialValues);
+    		HashMap<Object, Object> map = createObjects(Class.forName(type2.getName()), implOfAbstractClasses, specialValues, true);
     		Set<Entry<Object,Object>> entries = map.entrySet();
     					
     		for(Entry entry : entries){
@@ -1123,12 +1132,12 @@ public final class AutoTester {
     		Class<?> valueType = (Class<?>)type.getActualTypeArguments()[1];
     		
     		//create objects for the Map
-    		HashMap<Object, Object> values = createObjects(Class.forName(valueType.getName()), implOfAbstractClasses, specialValues );
+    		HashMap<Object, Object> values = createObjects(Class.forName(valueType.getName()), implOfAbstractClasses, specialValues, true);
     		Set<Entry<Object,Object>> entriesV = values.entrySet();
     
     		for(Entry entryV : entriesV){
     
-    			HashMap<Object, Object> keys = createObjects(Class.forName(keyType.getName()), implOfAbstractClasses, specialValues);
+    			HashMap<Object, Object> keys = createObjects(Class.forName(keyType.getName()), implOfAbstractClasses, specialValues, true);
     			Set<Entry<Object,Object>> entriesK = keys.entrySet();
     
     			for (Entry entryK : entriesK) {
@@ -1155,7 +1164,7 @@ public final class AutoTester {
 		Class<?> object = Class.forName(parameters[parameterIndex].getName());
 			
 		//recursively check equals
-		HashMap<Object, Object> map = createObjects(object, implOfAbstractClasses,specialValues);
+		HashMap<Object, Object> map = createObjects(object, implOfAbstractClasses,specialValues, false);
 		Set<Entry<Object,Object>> entries = map.entrySet();
 			
 		for(Entry entry : entries){
@@ -1436,8 +1445,9 @@ public final class AutoTester {
 	}
 	
 	@SuppressWarnings("rawtypes")
-	private static void constructObjects(List<Constructor> constructors, HashMap<Object, Object> returnObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws InvocationTargetException, ClassNotFoundException, InstantiationException, IllegalAccessException{
+	private static void constructObjects(List<Constructor> constructors, HashMap<Object, Object> returnObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues, boolean allConstructors) throws InvocationTargetException, ClassNotFoundException, InstantiationException, IllegalAccessException{
 		
+	  Throwable stored = null;
 		for (int i=0; i<constructors.size(); i++) {
 		    Constructor constructor = constructors.get(i);
 		  
@@ -1455,26 +1465,40 @@ public final class AutoTester {
 			Object newObjLeft;
 			Object newObjRight;
 			
-			//handle no-argument constructors differently otherwise an exception is thrown
-			if(parameters.length>0){
-				Object[] argListLeft=new Object[parameters.length];
-				Object[] argListRight=new Object[parameters.length];
-				
-				Type[] types = constructor.getGenericParameterTypes();
-				fillEverything(parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
-				
-				//call constructor
-				newObjLeft = constructor.newInstance(argListLeft);
-				newObjRight = constructor.newInstance(argListRight);
+			try{
+    			//handle no-argument constructors differently otherwise an exception is thrown
+    			if(parameters.length>0){
+    				Object[] argListLeft=new Object[parameters.length];
+    				Object[] argListRight=new Object[parameters.length];
+    				
+    				Type[] types = constructor.getGenericParameterTypes();
+    				
+    				fillEverything(parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
+    				//call constructor
+    				newObjLeft = constructor.newInstance(argListLeft);
+    				newObjRight = constructor.newInstance(argListRight);
+    			}
+    			else{
+    				//call constructor
+    				newObjLeft = constructor.newInstance();
+    				newObjRight = constructor.newInstance();
+    			}
 			}
-			else{
-				//call constructor
-				newObjLeft = constructor.newInstance();
-				newObjRight = constructor.newInstance();
-			}
-				
+			//allConstructors==false then only one constructor call should succeed (e.g. if parameters should be instantiated just an exemplary object is needed) => skipping failed constructors
+			catch(InstantiationException | IllegalAccessException | InvocationTargetException | AssertionError e){
+              if(!allConstructors){
+                stored = e;
+                continue;
+              }
+              else{
+                throw e;
+              }
+            }
 			//return newly created objects
 			returnObjects.put(newObjLeft,newObjRight);
+		}
+		if(returnObjects.isEmpty() && stored!=null){
+		  throw new RuntimeException(stored);
 		}
 	}
 	
