@@ -339,7 +339,7 @@ public final class AutoTester {
 		for (Entry entry : consts) {
 			Object constLeft = entry.getKey();
 			Object constRight = entry.getValue();
-			executeEquals(constLeft, constRight);
+			executeEquals(constLeft, constRight,false);
 		}
 		
 		//second check if equals and hashCode are correctly implemented:
@@ -438,7 +438,7 @@ public final class AutoTester {
 						Object returnRight = method.invoke(constRight,(Object[])null);
 						
 						//result of toString() should be equals, too
-						executeEquals(returnLeft,returnRight);
+						executeEquals(returnLeft,returnRight,false);
 					}
 				}
 				else{
@@ -1182,8 +1182,8 @@ public final class AutoTester {
     			//1st condition: calling equals on URL objects is not a good idea cp. http://javaantipatterns.wordpress.com/2007/11/24/comparing-urls-with-urlequals
     			//2nd condition: If a class does not override equals then don't call it otherwise objects with the same values are not equals
     			if(!object.isAssignableFrom(URL.class) && classImplementsEquals(entry.getKey().getClass())){
-    				//since only one pair is taken also check equals here:
-    				executeEquals(entry.getKey(), entry.getValue());
+    				//since only one pair is taken also check equals here for that parameter object (but only a warning is printed out)
+    				executeEquals(entry.getKey(), entry.getValue(),true);
     			}
 	        }
 		}
@@ -1707,24 +1707,44 @@ public final class AutoTester {
 		return new ExtractionValue(false, null);
 	}
 	
-	private static void executeEquals(Object left, Object right){
+	private static void executeEquals(Object left, Object right, boolean warningOnly){
 		
 		Object nill = null;
 		//equals to null
 		if(left.equals(nill) || right.equals(nill)){
-			throw new AssertionError("Error testEquals() - objects match null!");
+		  if(warningOnly && enableWarnings){
+		    System.err.println("Error testEquals() - objects match null!");
+		  }
+		  else {
+		    throw new AssertionError("Error testEquals() - objects match null!");
+		  }
 		}
 		//equals on itself
 		if(!left.equals(left) || !right.equals(right)){
-			throw new AssertionError("Error testEquals() - object isn't equals to itself!");
+		  if(warningOnly && enableWarnings){
+		    System.err.println("Error testEquals() - object ("+left.getClass().getName()+") isn't equals to itself!");
+		  }
+		  else{
+		    throw new AssertionError("Error testEquals() - object ("+left.getClass().getName()+") isn't equals to itself!");
+		  }
 		}
 		//equals on a different object
 		if(left.equals(new Object()) || right.equals(new Object())){
-			throw new AssertionError("Error testEquals() - object is equals to a different (totally unrelated) object!");
+		  if(warningOnly && enableWarnings){
+		    System.err.println("Error testEquals() - object ("+left.getClass().getName()+") always returns true!");
+		  }
+		  else{
+		    throw new AssertionError("Error testEquals() - object ("+left.getClass().getName()+") always returns true!");
+		  }
 		}
 		//equals to a different object with same values
 		if(!left.equals(right)){
-			throw new AssertionError("Objects should be equals but in fact they are not ("+left.getClass().getName()+")!");
+		  if(warningOnly && enableWarnings){
+		    System.err.println("(Parameter) objects should be equals but in fact they are not ("+left.getClass().getName()+")! An exception may be time related classes which may contain a different timestamp.");
+		  }
+		  else{
+			throw new AssertionError("(Parameter) objects should be equals but in fact they are not ("+left.getClass().getName()+")!  An exception may be time related classes which may contain a different timestamp.");
+		  }
 		}
 	}
 	
