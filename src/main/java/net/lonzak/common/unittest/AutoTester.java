@@ -157,8 +157,8 @@ public final class AutoTester {
 	 * @param specialValues for the constructors/set methods to use
 	 */
 	public static void testDTOClass(Class<?> dtoClass, List<Class<?>> implOfAbstractClasses, List<String> ignorePropertiesForGetSetTest, SpecialValueLocator specialValues){
-		if(implOfAbstractClasses==null) implOfAbstractClasses = new ArrayList<Class<?>>();
-		if(ignorePropertiesForGetSetTest==null) ignorePropertiesForGetSetTest = new ArrayList<String>();
+		if(implOfAbstractClasses==null) implOfAbstractClasses = new ArrayList<>();
+		if(ignorePropertiesForGetSetTest==null) ignorePropertiesForGetSetTest = new ArrayList<>();
 		if(specialValues==null) specialValues = SpecialValueLocator.NONE;
 			  
 		//abstract classes or interfaces can not be instantiated
@@ -176,13 +176,13 @@ public final class AutoTester {
 		}
 		
 		try{
-			//create all constructors and check equals
-			HashMap<Object, Object> constructors = createObjects(dtoClass, implOfAbstractClasses, specialValues,true);
+		    //create all constructors and check equals
+			HashMap<Object, Object> constructors = createObjects(new ArrayList<Class<?>>(), dtoClass, implOfAbstractClasses, specialValues,true);
 			//create all set methods and call them for each constructor
 			if(equalsExists && hashCodeExists){
-				checkEqualsAndHashCode(dtoClass, constructors, implOfAbstractClasses, specialValues);
+				checkEqualsAndHashCode(new ArrayList<Class<?>>(), dtoClass, constructors, implOfAbstractClasses, specialValues);
 			}
-			checkGettersAndSetters(dtoClass, constructors, implOfAbstractClasses, ignorePropertiesForGetSetTest, specialValues);
+			checkGettersAndSetters(new ArrayList<Class<?>>(), dtoClass, constructors, implOfAbstractClasses, ignorePropertiesForGetSetTest, specialValues);
 			checkToString(dtoClass, constructors);
 		}
 		catch (IllegalArgumentException iae) {
@@ -221,6 +221,7 @@ public final class AutoTester {
 	/**
 	 * Checks if the equals method works as expected.
 	 * 
+	 * @param constructedClasses list of all classes which are about to be created
 	 * @param dtoClass to test
 	 * @param implOfAbstractClasses
 	 * @param specialValues
@@ -234,11 +235,10 @@ public final class AutoTester {
 	 * @throws  
 	 * @throws AssertionError if test fails
 	 */
-	@SuppressWarnings("rawtypes")
-	private static HashMap<Object, Object> createObjects(Class dtoClass, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues, boolean allConstructors) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
+	private static HashMap<Object, Object> createObjects(ArrayList<Class<?>> constructedClasses, Class<?> dtoClass, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues, boolean allConstructors) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		
 		//create return Map: two objects for each constructor
-		HashMap<Object, Object> returnObjects = new HashMap<Object,Object>();
+		HashMap<Object, Object> returnObjects = new HashMap<>();
 		
 		//exclude java.lang.* classes because:
 		//otherwise all Integer, Float, String ... constructors will be called, filled with Random numbers etc.
@@ -289,11 +289,11 @@ public final class AutoTester {
 		}
 
 		//only public constructors are relevant
-		List<Constructor> constructors =  new ArrayList<Constructor>(Arrays.asList(dtoClass.getConstructors()));
+		List<Constructor<?>> constructors =  new ArrayList<>(Arrays.asList(dtoClass.getConstructors()));
 
 		//check for constructors which are instantiated with the same class -> results in infinite loop
-		ArrayList<Constructor<?>> toBeRemoved = new ArrayList<Constructor<?>>();
-		for (Constructor constructor : constructors) {
+		ArrayList<Constructor<?>> toBeRemoved = new ArrayList<>();
+		for (Constructor<?> constructor : constructors) {
 			
 			Class<?>[] parameters = constructor.getParameterTypes();
 			
@@ -313,8 +313,13 @@ public final class AutoTester {
 			constructors=Arrays.asList(dtoClass.getDeclaredConstructors());
 		}
 		
-		try{
-			constructObjects(constructors, returnObjects, implOfAbstractClasses, specialValues,allConstructors);
+	    //it is necessary to store all classes to avoid circular object creations which otherwise results in an SOE
+        if(!constructedClasses.contains(dtoClass)){
+          constructedClasses.add(dtoClass);
+        }
+
+        try{
+			constructObjects(constructedClasses, constructors, returnObjects, implOfAbstractClasses, specialValues,allConstructors);
 		}
 		catch(InvocationTargetException ite){
 			if(ite.getCause() instanceof NumberFormatException || ite.getTargetException() instanceof IllegalArgumentException){
@@ -331,7 +336,7 @@ public final class AutoTester {
 	}
 	
 	@SuppressWarnings("rawtypes")
-	private static void checkEqualsAndHashCode(Class dtoClass, HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
+	private static void checkEqualsAndHashCode(ArrayList<Class<?>> constructedClasses, Class dtoClass, HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		
 		//first check equality on all constructed objects
 		Set<Entry<Object,Object>> consts = constructedObjects.entrySet();
@@ -347,7 +352,7 @@ public final class AutoTester {
 		Method[] methods = dtoClass.getMethods();
 		
 		try{
-			constructSetMethodsAndCheckEquals(dtoClass, constructedObjects, methods, implOfAbstractClasses, specialValues);
+			constructSetMethodsAndCheckEquals(constructedClasses, dtoClass, constructedObjects, methods, implOfAbstractClasses, specialValues);
 		}
 		catch(InvocationTargetException ite){
 			if(ite.getCause() instanceof NumberFormatException){
@@ -362,7 +367,7 @@ public final class AutoTester {
 		}
 	}
 	
-	private static void checkGettersAndSetters(Class<?> dtoClass, HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses, List<String> propertiesToIgnore, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
+	private static void checkGettersAndSetters(ArrayList<Class<?>> constructedClasses, Class<?> dtoClass, HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses, List<String> propertiesToIgnore, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
 
 		//all public methods are relevant
 		List<Method> publicMethods = Arrays.asList(dtoClass.getMethods());
@@ -375,7 +380,7 @@ public final class AutoTester {
 		
 		
 		// remove the ignoredProperties
-		List<Method> toRemove = new ArrayList<Method>();
+		List<Method> toRemove = new ArrayList<>();
 		for (Method current : allMethods) {
 			if (current.getName().startsWith("get") || current.getName().startsWith("set")) {
 				String name = current.getName().substring(3);
@@ -393,7 +398,7 @@ public final class AutoTester {
 		
 		
 		try{
-			constructSetMethods(dtoClass, constructedObjects, allMethods, implOfAbstractClasses, specialValues);
+			constructSetMethods(constructedClasses, dtoClass, constructedObjects, allMethods, implOfAbstractClasses, specialValues);
 		}
 		catch(InvocationTargetException ite){
 			if(ite.getCause() instanceof NumberFormatException){
@@ -733,7 +738,7 @@ public final class AutoTester {
 	}
 	
 	@SuppressWarnings("rawtypes")
-	private static void fillArray(Class<?>[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	private static void fillArray(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 	  
 		//primitive Arrays 
 	   if(parameters[parameterIndex].isAssignableFrom(int[].class)){
@@ -980,7 +985,7 @@ public final class AutoTester {
 			Class<?> arrayType = ((Class<?>)types[parameterIndex]).getComponentType();
 
 			//create objects for the array
-			HashMap<Object, Object> map = createObjects(Class.forName(arrayType.getName()), implOfAbstractClasses, specialValues, true);
+			HashMap<Object, Object> map = createObjects(constructedObjects, Class.forName(arrayType.getName()), implOfAbstractClasses, specialValues, false);
 			Iterator<Entry<Object,Object>> entries = map.entrySet().iterator();
 			
 			Object[] leftList;
@@ -1034,7 +1039,7 @@ public final class AutoTester {
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private static void fillCollections(Class[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	private static void fillCollections(ArrayList<Class<?>> constructedObjects, Class[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		
 		Class parameter = parameters[parameterIndex];
 		
@@ -1078,7 +1083,7 @@ public final class AutoTester {
     		Class<?> type2 = (Class<?>)type.getActualTypeArguments()[0];
     		
     		//create objects for the List
-    		HashMap<Object, Object> map = createObjects(Class.forName(type2.getName()), implOfAbstractClasses, specialValues, true);
+    		HashMap<Object, Object> map = createObjects(constructedObjects, Class.forName(type2.getName()), implOfAbstractClasses, specialValues, false);
     		Set<Entry<Object,Object>> entries = map.entrySet();
     					
     		for(Entry entry : entries){
@@ -1097,7 +1102,7 @@ public final class AutoTester {
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private static void fillMaps(Class<?>[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	private static void fillMaps(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		
 		Class parameter = parameters[parameterIndex];
 		
@@ -1132,12 +1137,12 @@ public final class AutoTester {
     		Class<?> valueType = (Class<?>)type.getActualTypeArguments()[1];
     		
     		//create objects for the Map
-    		HashMap<Object, Object> values = createObjects(Class.forName(valueType.getName()), implOfAbstractClasses, specialValues, true);
+    		HashMap<Object, Object> values = createObjects(constructedObjects, Class.forName(valueType.getName()), implOfAbstractClasses, specialValues, false);
     		Set<Entry<Object,Object>> entriesV = values.entrySet();
     
     		for(Entry entryV : entriesV){
     
-    			HashMap<Object, Object> keys = createObjects(Class.forName(keyType.getName()), implOfAbstractClasses, specialValues, true);
+    			HashMap<Object, Object> keys = createObjects(constructedObjects, Class.forName(keyType.getName()), implOfAbstractClasses, specialValues, false);
     			Set<Entry<Object,Object>> entriesK = keys.entrySet();
     
     			for (Entry entryK : entriesK) {
@@ -1159,12 +1164,12 @@ public final class AutoTester {
 	}
 	
 	@SuppressWarnings("rawtypes")
-	private static void fillObject(Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	private static void fillObject(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		//Is a normal object
 		Class<?> object = Class.forName(parameters[parameterIndex].getName());
 			
 		//recursively check equals
-		HashMap<Object, Object> map = createObjects(object, implOfAbstractClasses,specialValues, false);
+		HashMap<Object, Object> map = createObjects(constructedObjects, object, implOfAbstractClasses,specialValues, false);
 		Set<Entry<Object,Object>> entries = map.entrySet();
 			
 		for(Entry entry : entries){
@@ -1412,7 +1417,7 @@ public final class AutoTester {
 		}
 	}
 	
-	private static void fillEverything(Class<?>[] parameters, Type[] types, Object[] argListLeft, Object[] argListRight, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	private static void fillEverything(ArrayList<Class<?>> constructedClasses, Class<?>[] parameters, Type[] types, Object[] argListLeft, Object[] argListRight, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		Class<?>[] paramListLeft = new Class[parameters.length];
 		Class<?>[] paramListRight = new Class[parameters.length];
 		
@@ -1423,7 +1428,7 @@ public final class AutoTester {
 				fillPrimitiveType(parameters, paramListLeft, argListLeft, paramListRight, argListRight, j, specialValues);
 			}
 			else if(parameters[j].isArray()){
-				fillArray(parameters, types, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses, specialValues);
+				fillArray(constructedClasses, parameters, types, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses, specialValues);
 			}
 			else if(parameters[j].isEnum()){
 				fillEnum(parameters, paramListLeft, argListLeft, paramListRight, argListRight, j, specialValues);
@@ -1433,19 +1438,19 @@ public final class AutoTester {
 				continue;
 			}
 			else if(parameters[j].equals(Collection.class) || ClassUtils.getAllInterfaces(parameters[j]).contains(Collection.class)){
-				fillCollections(parameters, types, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses,specialValues);
+				fillCollections(constructedClasses, parameters, types, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses,specialValues);
 			}
 			else if(parameters[j].equals(Map.class) || ClassUtils.getAllInterfaces(parameters[j]).contains(Map.class)){
-				fillMaps(parameters, types, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses,specialValues);
+				fillMaps(constructedClasses, parameters, types, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses,specialValues);
 			}
 			else{
-				fillObject(parameters, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses,specialValues);
+				fillObject(constructedClasses, parameters, paramListLeft, argListLeft, paramListRight, argListRight, j, implOfAbstractClasses,specialValues);
 			}
 		}
 	}
 	
 	@SuppressWarnings("rawtypes")
-	private static void constructObjects(List<Constructor> constructors, HashMap<Object, Object> returnObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues, boolean allConstructors) throws InvocationTargetException, ClassNotFoundException, InstantiationException, IllegalAccessException{
+	private static void constructObjects(ArrayList<Class<?>> constructedClasses, List<Constructor<?>> constructors, HashMap<Object, Object> returnObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues, boolean allConstructors) throws InvocationTargetException, ClassNotFoundException, InstantiationException, IllegalAccessException{
 		
 	  Throwable stored = null;
 		for (int i=0; i<constructors.size(); i++) {
@@ -1462,6 +1467,11 @@ public final class AutoTester {
 				constructor.setAccessible(true);
 			}
 			
+			//clear constructedClasses for new constructors (recursively called but with allConstructors one is able to identify the initial loop)
+			if(allConstructors && constructedClasses.size()>1){
+			  constructedClasses.subList(1, constructedClasses.size()).clear();
+			}
+			
 			Object newObjLeft;
 			Object newObjRight;
 			
@@ -1473,7 +1483,23 @@ public final class AutoTester {
     				
     				Type[] types = constructor.getGenericParameterTypes();
     				
-    				fillEverything(parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
+    				//iterate parameters to avoid circular class creation which results in an StackOverflow Error
+    				boolean foundCycle=false;
+    				for(Class<?> parameterClass : parameters){
+    				  
+    				  for(Class<?> constructedClass : constructedClasses){
+        				  if(parameterClass.isAssignableFrom(constructedClass)){
+        				    //Skip constructor: A class creation cycle has been detected. The class '"+constructedClass.getSimpleName()+"' should be created however is needed as parameter for "+constructor.getDeclaringClass().getSimpleName()+" at the same time
+        				    foundCycle=true;
+        				    break;
+        				  }
+    				  }
+    				}
+    				if(foundCycle) {
+    				  continue;
+    				}
+    				
+    				fillEverything(constructedClasses, parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
     				//call constructor
     				newObjLeft = constructor.newInstance(argListLeft);
     				newObjRight = constructor.newInstance(argListRight);
@@ -1500,9 +1526,12 @@ public final class AutoTester {
 		if(returnObjects.isEmpty() && stored!=null){
 		  throw new RuntimeException(stored);
 		}
+		else if(returnObjects.isEmpty() && enableWarnings){
+		  System.err.println("None of the constructors of the class "+constructors.get(0).getDeclaringClass().getSimpleName()+" could be instantiated (due to cretion cycle(s)). Consider revising your application design.");
+		}
 	}
 	
-	private static void constructSetMethodsAndCheckEquals(Class<?> dtoClass, HashMap<Object, Object> constructedObjects, Method[] methods, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	private static void constructSetMethodsAndCheckEquals(ArrayList<Class<?>> constructedClasses, Class<?> dtoClass, HashMap<Object, Object> constructedObjects, Method[] methods, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		for (int i = 0; i < methods.length; i++) {
 			
 			if(methods[i].getName().startsWith("set")){
@@ -1515,7 +1544,7 @@ public final class AutoTester {
 				Object[] argListLeft = new Object[parameters.length];
 				Object[] argListRight = new Object[parameters.length];
 				
-				fillEverything(parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
+				fillEverything(constructedClasses, parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
 
 				//call method for every constructed constructor
 				Set<Entry<Object,Object>> consts = constructedObjects.entrySet();
@@ -1559,7 +1588,7 @@ public final class AutoTester {
 		}
 	}
 	
-	private static void constructSetMethods(Class<?> dtoClass, HashMap<Object, Object> constructedObjects, ArrayList<Method> allMethods, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	private static void constructSetMethods(ArrayList<Class<?>> constructedClasses, Class<?> dtoClass, HashMap<Object, Object> constructedObjects, ArrayList<Method> allMethods, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		for (Method method : allMethods) {
 			
 			if(method.getName().startsWith("set")){
@@ -1579,7 +1608,7 @@ public final class AutoTester {
 				
 				Type[] types = method.getGenericParameterTypes();
 				
-				fillEverything(parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
+				fillEverything(constructedClasses, parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
 
 				//call set method for every constructed constructor
 				Set<Entry<Object,Object>> consts = constructedObjects.entrySet();
@@ -1828,7 +1857,7 @@ public final class AutoTester {
 	 * @return
 	 */
 	private static List<Field> getInheritedFields(Class<?> clazz) {
-		 List<Field> fields = new ArrayList<Field>();
+		 List<Field> fields = new ArrayList<>();
 		 
 		 Class<?> classToCheck = clazz;
 		 
@@ -1848,8 +1877,8 @@ public final class AutoTester {
 	 * @return
 	 */
 	private static ArrayList<Method> getInheritedProtectedMethods(Class<?> clazz) {
-		ArrayList<Method> methods = new ArrayList<Method>();
-		ArrayList<Method> protectedMethods = new ArrayList<Method>();
+		ArrayList<Method> methods = new ArrayList<>();
+		ArrayList<Method> protectedMethods = new ArrayList<>();
 		 
 		Class<?> classToCheck = clazz;
 		
