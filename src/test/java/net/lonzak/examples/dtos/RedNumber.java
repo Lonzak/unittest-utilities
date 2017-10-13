@@ -29,7 +29,7 @@ import net.lonzak.examples.enums.ClassOfColor;
 /**
  * Example for a colored number: Red
  */
-public class RedNumber implements ColorNumber {
+public class RedNumber<T> implements ColorNumber {
 
 	private final int type;
 	private final ClassOfColor co;
@@ -47,6 +47,20 @@ public class RedNumber implements ColorNumber {
 		this.co = co;
 		this.seqNo = seqNo;
 	}
+	
+	public RedNumber(int type, String co, int seqNo) {
+      super();
+      this.type = type;
+      this.co = ClassOfColor.H1;
+      this.seqNo = seqNo;
+	}
+	
+	public RedNumber(int type, T co, int seqNo) {
+	      super();
+	      this.type = type;
+	      this.co = ClassOfColor.H1;
+	      this.seqNo = seqNo;
+	    }
 
 	/**
 	 * @param color character String as a number

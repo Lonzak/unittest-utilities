@@ -36,7 +36,7 @@
 					<source>1.7</source>
 					<target>1.7</target>
 					<fork>true</fork>
-					<compilerVersion>1.6</compilerVersion>
+					<compilerVersion>1.7</compilerVersion>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -93,7 +93,7 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.11</version>
-			<scope>test</scope>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>

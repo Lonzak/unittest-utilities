@@ -27,6 +27,7 @@ package net.lonzak.examples;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import net.lonzak.common.unittest.AutoTester;
@@ -51,12 +52,12 @@ public class AutoTesterTest {
     @Test
     public void testWithPredefinedValues(){
       //Tests with a special value
-      AutoTester.testDTOClass(RedNumber.class, null, null, new SpecialValueLocator(new Location(2,1), "9910000001111"));
+      AutoTester.testDTOClass(RedNumber.class, null, null, new SpecialValueLocator(new Location(1,1), "9910000001111"));
       
       //Test with several special values
-      HashMap<Location, Object> customValues = new HashMap<SpecialValueLocator.Location, Object>();
-      customValues.put(new Location(1,2), ClassOfColor.H5);
-      customValues.put(new Location(2,1), "1110011111111");
+      HashMap<Location, Object> customValues = new HashMap<>();
+      customValues.put(new Location(3,2), ClassOfColor.H5);
+      customValues.put(new Location(1,1), "1110011111111");
       AutoTester.testDTOClass(RedNumber.class, null,null, new SpecialValueLocator(customValues));
     }
     
@@ -70,7 +71,7 @@ public class AutoTesterTest {
     
     @Test
     public void testExclusion(){
-      ArrayList<String> exclusions = new ArrayList<String>();
+      ArrayList<String> exclusions = new ArrayList<>();
       exclusions.add("floatArray");
       
       AutoTester.testDTOClass(ExampleDTO.class,null,exclusions,null);

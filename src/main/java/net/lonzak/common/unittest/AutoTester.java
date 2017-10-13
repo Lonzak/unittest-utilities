@@ -66,6 +66,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.EmptyStackException;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -83,6 +84,9 @@ import java.util.regex.Pattern;
 
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialException;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -335,13 +339,12 @@ public final class AutoTester {
 		return returnObjects;
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private static void checkEqualsAndHashCode(ArrayList<Class<?>> constructedClasses, Class dtoClass, HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
+	private static void checkEqualsAndHashCode(ArrayList<Class<?>> constructedClasses, Class<?> dtoClass, HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		
 		//first check equality on all constructed objects
 		Set<Entry<Object,Object>> consts = constructedObjects.entrySet();
 
-		for (Entry entry : consts) {
+		for (Entry<Object,Object> entry : consts) {
 			Object constLeft = entry.getKey();
 			Object constRight = entry.getValue();
 			executeEquals(constLeft, constRight,false);
@@ -459,15 +462,15 @@ public final class AutoTester {
 	  }
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private static void fillPrimitiveType(Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
+	private static void fillPrimitiveType(Class<?>[] parameters, Class<?>[] paramListLeft, Object[] argListLeft, Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
 		//primitive types
 		if(parameters[parameterIndex].isAssignableFrom(byte.class)){
 			paramListLeft[parameterIndex] = Byte.TYPE;
 			paramListRight[parameterIndex] = Byte.TYPE;
 			
 			Byte b;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               b =  (Byte)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -482,7 +485,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Short.TYPE;
 			
 			Short s;
-			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
 			  s =  (Short)specialValues.getSpecialValue(parameterIndex+1);
 			}
 			else{
@@ -496,7 +500,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Integer.TYPE;
 			
 			Integer in;
-			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
 			  in = (Integer)specialValues.getSpecialValue(parameterIndex+1);
 			}
 			else{
@@ -510,7 +515,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Long.TYPE;
 			
 			Long l;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               l = (Long)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -525,7 +531,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Float.TYPE;
 
 			Float f;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               f = (Float)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -540,7 +547,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Double.TYPE;
 			
 			Double d;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               d = (Double)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -555,7 +563,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Boolean.TYPE;
 			
 			Boolean b;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               b = (Boolean)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -570,7 +579,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Character.TYPE;
 			
 			Character c;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               c = (Character)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -596,8 +606,7 @@ public final class AutoTester {
 	 * @param specialValues
 	 * @return true if the data type could be filled otherwise false
 	 */
-	@SuppressWarnings("rawtypes")
-	private static boolean fillJavaLangType(Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
+	private static boolean fillJavaLangType(Class<?>[] parameters, Class<?>[] paramListLeft, Object[] argListLeft,Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
 		
 		//check String
 	    if(parameters[parameterIndex].isAssignableFrom(String.class)){
@@ -605,7 +614,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = String.class;
 			
 			String s;
-			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+			Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+			if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
 			  s = (String)specialValues.getSpecialValue(parameterIndex+1);
 			}
 			else{
@@ -620,7 +630,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Byte.class;
 			
 			Byte b;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+			Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+			if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               b = (Byte)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -635,7 +646,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Short.class;
 			
 			Short s;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+			Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+			if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               s = (Short)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -650,7 +662,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Integer.class;
 			
 			Integer in;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               in = (Integer)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -665,7 +678,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Long.class;
 			
 			Long l;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               l = (Long)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -680,7 +694,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Float.class;
 			
 			Float f;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               f = (Float)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -694,7 +709,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Double.class;
 			
 			Double d;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               d = (Double)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -708,7 +724,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Boolean.class;
 			
 			Boolean b;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               b = (Boolean)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -722,7 +739,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Character.class;
 			
 			Character c;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               c = (Character)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -737,8 +755,7 @@ public final class AutoTester {
 		return true;
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private static void fillArray(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	private static void fillArray(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 	  
 		//primitive Arrays 
 	   if(parameters[parameterIndex].isAssignableFrom(int[].class)){
@@ -746,7 +763,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = int[].class;
 			
 			int [] in;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               in = (int[])specialValues.getSpecialValue(parameterIndex+1+1);
             }
             else{
@@ -761,7 +779,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = long[].class;
 			
 			long [] l;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               l = (long[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -776,7 +795,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = float[].class;
 			
 			float [] f;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               f = (float[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -791,7 +811,9 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = double[].class;
 			
 			double [] d;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
+
               d = (double[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -806,7 +828,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = boolean[].class;
 			
 			boolean [] b;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               b = (boolean[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -821,7 +844,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = byte[].class;
 			
 			byte [] b;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               b = (byte[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -835,7 +859,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = short[].class;
 			
 			short [] s;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               s = (short[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -850,7 +875,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = char[].class;
 			
 			char [] c;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               c= (char[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -866,7 +892,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Integer[].class;
 			
 			Integer [] in;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               in= (Integer[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -880,7 +907,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Long[].class;
 			
 			Long [] l;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               l= (Long[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -894,7 +922,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Float[].class;
 			
 			Float [] f;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               f= (Float[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -908,7 +937,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Double[].class;
 			
 			Double [] d;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               d= (Double[])specialValues.getSpecialValue(parameterIndex+1+1);
             }
             else{
@@ -922,7 +952,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Boolean[].class;
 			
 			Boolean [] b;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               b = (Boolean[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -936,7 +967,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Byte[].class;
 			
 			Byte [] b;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               b = (Byte[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -950,7 +982,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Short[].class;
 			
 			Short [] s;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               s = (Short[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -964,7 +997,8 @@ public final class AutoTester {
 			paramListRight[parameterIndex] = Character[].class;
 			
 			Character [] c;
-            if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
               c = (Character[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
@@ -991,7 +1025,8 @@ public final class AutoTester {
 			Object[] leftList;
 			Object[] rightList;
 			
-			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
 			  leftList = (Object[])specialValues.getSpecialValue(parameterIndex+1);
 			  rightList = (Object[])specialValues.getSpecialValue(parameterIndex+1);
             }
@@ -1011,10 +1046,9 @@ public final class AutoTester {
 		}
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private static void fillEnum(Class[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues) throws ClassNotFoundException{
+	private static void fillEnum(Class<?>[] parameters, Class<?>[] paramListLeft, Object[] argListLeft, Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues) throws ClassNotFoundException{
 		//Enums can not be instantiated
-		Class object = Class.forName(parameters[parameterIndex].getName());
+		Class<?> object = Class.forName(parameters[parameterIndex].getName());
 		Object[] objects = object.getEnumConstants();
 		
 		if(objects.length>0){
@@ -1024,7 +1058,8 @@ public final class AutoTester {
           paramListLeft[parameterIndex] = objects[enumValue].getClass();
           paramListRight[parameterIndex] = objects[enumValue].getClass();
   		
-  		if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+          Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+          if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
             argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
             argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
           }
@@ -1037,42 +1072,42 @@ public final class AutoTester {
 		  throw new IllegalArgumentException(object.getCanonicalName()+" is an empty enum and can thus not be tested. Add a value or exclude it from the tests.");
 		}
 	}
-	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private static void fillCollections(ArrayList<Class<?>> constructedObjects, Class[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+
+	private static void fillCollections(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		
-		Class parameter = parameters[parameterIndex];
+		Class<?> parameter = parameters[parameterIndex];
 		
 		paramListLeft[parameterIndex] = Class.forName(parameter.getName());
 		paramListRight[parameterIndex] = Class.forName(parameter.getName());
 
-		if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+        Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+        if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
           argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
           argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
 		}
 		else{
 		  
-	        Collection leftList;
-	        Collection rightList;
+	        Collection<Object> leftList;
+	        Collection<Object> rightList;
     		//concrete Collection class will be instantiated
     		if(!parameter.isInterface()){
-    			leftList = (Collection)paramListLeft[parameterIndex].newInstance();
-    			rightList = (Collection)paramListRight[parameterIndex].newInstance();
+    			leftList = (Collection<Object>)paramListLeft[parameterIndex].newInstance();
+    			rightList = (Collection<Object>)paramListRight[parameterIndex].newInstance();
     		}
     		else if(parameter.isAssignableFrom(List.class)){
     			//default implementation for List = ArrayList
-    			leftList = new ArrayList();
-    			rightList = new ArrayList();
+    			leftList = new ArrayList<>();
+    			rightList = new ArrayList<>();
     		}
     		else if(parameter.isAssignableFrom(Set.class)){
     			//default implementation for List = HashSet
-    			leftList = new HashSet();
-    			rightList = new HashSet();
+    			leftList = new HashSet<>();
+    			rightList = new HashSet<>();
     		}
     		else if(parameter.isAssignableFrom(Queue.class)){
     			//default implementation for List = PriorityQueue
-    			leftList = new PriorityQueue();
-    			rightList = new PriorityQueue();
+    			leftList = new PriorityQueue<>();
+    			rightList = new PriorityQueue<>();
     		}
     		else{
     			throw new AssertionError("Unsupported Collection type:"+parameter.getName());
@@ -1086,7 +1121,7 @@ public final class AutoTester {
     		HashMap<Object, Object> map = createObjects(constructedObjects, Class.forName(type2.getName()), implOfAbstractClasses, specialValues, false);
     		Set<Entry<Object,Object>> entries = map.entrySet();
     					
-    		for(Entry entry : entries){
+    		for(Entry<Object,Object> entry : entries){
     				
     			//classes of SortedSet must implement comparable interface
     			if(ClassUtils.getAllInterfaces(parameter).contains(SortedSet.class) && !ClassUtils.getAllInterfaces(entry.getKey().getClass()).contains(Comparable.class)){
@@ -1101,32 +1136,32 @@ public final class AutoTester {
 		}
 	}
 	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private static void fillMaps(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+	private static void fillMaps(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class<?>[] paramListLeft, Object[] argListLeft,Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		
-		Class parameter = parameters[parameterIndex];
+		Class<?> parameter = parameters[parameterIndex];
 		
 		paramListLeft[parameterIndex] = Class.forName(parameter.getName());
 		paramListRight[parameterIndex] = Class.forName(parameter.getName());
 		
-		if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+        Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+        if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
           argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
           argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
         }
         else{
 		
-    		Map leftList;
-    		Map rightList;
+    		Map<Object,Object> leftList;
+    		Map<Object,Object> rightList;
     		
     		//concrete Map class will be instantiated
     		if(!parameter.isInterface()){
-    			leftList = (Map)paramListLeft[parameterIndex].newInstance();
-    			rightList = (Map)paramListRight[parameterIndex].newInstance();
+    			leftList = (Map<Object,Object>)paramListLeft[parameterIndex].newInstance();
+    			rightList = (Map<Object,Object>)paramListRight[parameterIndex].newInstance();
     		}
     		else {
     			//default implementation for Map = HashMap
-    			leftList = new HashMap();
-    			rightList = new HashMap();
+    			leftList = new HashMap<>();
+    			rightList = new HashMap<>();
     		}
     				
     		//retrieve types of the classes <key,value>
@@ -1140,12 +1175,12 @@ public final class AutoTester {
     		HashMap<Object, Object> values = createObjects(constructedObjects, Class.forName(valueType.getName()), implOfAbstractClasses, specialValues, false);
     		Set<Entry<Object,Object>> entriesV = values.entrySet();
     
-    		for(Entry entryV : entriesV){
+    		for(Entry<Object,Object> entryV : entriesV){
     
     			HashMap<Object, Object> keys = createObjects(constructedObjects, Class.forName(keyType.getName()), implOfAbstractClasses, specialValues, false);
     			Set<Entry<Object,Object>> entriesK = keys.entrySet();
     
-    			for (Entry entryK : entriesK) {
+    			for (Entry<Object,Object> entryK : entriesK) {
     				
     				//classes of SortedMap keys must implement comparable interface
     				if(ClassUtils.getAllInterfaces(parameter).contains(SortedMap.class) && !ClassUtils.getAllInterfaces(entryK.getKey().getClass()).contains(Comparable.class)){
@@ -1162,9 +1197,8 @@ public final class AutoTester {
     		argListRight[parameterIndex]= rightList;
         }
 	}
-	
-	@SuppressWarnings("rawtypes")
-	private static void fillObject(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
+
+	private static void fillObject(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		//Is a normal object
 		Class<?> object = Class.forName(parameters[parameterIndex].getName());
 			
@@ -1172,11 +1206,12 @@ public final class AutoTester {
 		HashMap<Object, Object> map = createObjects(constructedObjects, object, implOfAbstractClasses,specialValues, false);
 		Set<Entry<Object,Object>> entries = map.entrySet();
 			
-		for(Entry entry : entries){
+		for(Entry<Object,Object> entry : entries){
 			paramListLeft[parameterIndex] = entry.getKey().getClass();
 			paramListRight[parameterIndex] = entry.getValue().getClass();
 			
-			if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+	         Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+	         if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
 	          argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
 	          argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
 	        }
@@ -1194,11 +1229,11 @@ public final class AutoTester {
 		}
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private static void fillSpecialObject(Class<?>[] parameters, Class[] paramListLeft,Object[] argListLeft,Class[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
+	private static void fillSpecialObject(Class<?>[] parameters, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
 		try{
 		  
-		  if(specialValues.getSpecialValue(parameterIndex+1)!=null){
+          Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+          if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
 		    paramListLeft[parameterIndex] = specialValues.getSpecialValue(parameterIndex+1).getClass();
             paramListRight[parameterIndex] = specialValues.getSpecialValue(parameterIndex+1).getClass();
 		    
@@ -1398,6 +1433,19 @@ public final class AutoTester {
               argListLeft[parameterIndex]= new StackTraceElement(declaringClass,methodName,fileName,line);
               argListRight[parameterIndex]= new StackTraceElement(declaringClass,methodName,fileName,line);
 			}
+			else if(parameters[parameterIndex].isAssignableFrom(XMLGregorianCalendar.class)){
+              paramListLeft[parameterIndex] = XMLGregorianCalendar.class;
+              paramListRight[parameterIndex] = XMLGregorianCalendar.class;
+              
+              GregorianCalendar cal = new GregorianCalendar();
+              try {
+                argListLeft[parameterIndex]= DatatypeFactory.newInstance().newXMLGregorianCalendar(cal);
+                argListRight[parameterIndex]= DatatypeFactory.newInstance().newXMLGregorianCalendar(cal);
+              }
+              catch (DatatypeConfigurationException e) {
+                throw new RuntimeException("Error creating XMLGregorianCalendar!"+e.getMessage(),e);
+              }
+          }
 			else{
 				throw new AssertionError("Unsupported class: "+parameters[parameterIndex].getName()+" - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
 			}
@@ -1448,16 +1496,15 @@ public final class AutoTester {
 			}
 		}
 	}
-	
-	@SuppressWarnings("rawtypes")
+
 	private static void constructObjects(ArrayList<Class<?>> constructedClasses, List<Constructor<?>> constructors, HashMap<Object, Object> returnObjects, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues, boolean allConstructors) throws InvocationTargetException, ClassNotFoundException, InstantiationException, IllegalAccessException{
 		
 	  Throwable stored = null;
 		for (int i=0; i<constructors.size(); i++) {
-		    Constructor constructor = constructors.get(i);
-		  
+		    Constructor<?> constructor = constructors.get(i);
+		    
 		    //in case special values need to be set
-		    specialValues.setCurrentConstructorIndex(i+1);
+		    specialValues.setNumberOfArgumentsConstructor(constructor.getParameterTypes().length);
 			
 		    Class<?>[] parameters = constructor.getParameterTypes();
 			
@@ -1636,8 +1683,7 @@ public final class AutoTester {
 	 * @throws IllegalAccessException
 	 * @throws InvocationTargetException
 	 */
-	@SuppressWarnings("rawtypes")
-	private static ExtractionValue extractValueFromField(Class dtoClass, Method method, Object constructedObject) throws IllegalAccessException{
+	private static ExtractionValue extractValueFromField(Class<?> dtoClass, Method method, Object constructedObject) throws IllegalAccessException{
 		
 		Field[] fields = dtoClass.getDeclaredFields();
 		
@@ -1675,8 +1721,7 @@ public final class AutoTester {
 	 * @throws IllegalAccessException
 	 * @throws InvocationTargetException
 	 */
-	@SuppressWarnings("rawtypes")
-	private static ExtractionValue extractValueFromGetter(Class dtoClass, Method method, Object constructedObject) throws IllegalAccessException, InvocationTargetException{
+	private static ExtractionValue extractValueFromGetter(Class<?> dtoClass, Method method, Object constructedObject) throws IllegalAccessException, InvocationTargetException{
 		
 		Method[] getter = dtoClass.getMethods();
 		for (int j = 0; j < getter.length; j++) {
@@ -1716,8 +1761,7 @@ public final class AutoTester {
 	 * @throws IllegalAccessException
 	 * @throws InvocationTargetException
 	 */
-	@SuppressWarnings("rawtypes")
-	private static ExtractionValue extractValueFromHashCode(Class dtoClass, Object constructedObject) throws IllegalAccessException, InvocationTargetException{
+	private static ExtractionValue extractValueFromHashCode(Class<?> dtoClass, Object constructedObject) throws IllegalAccessException, InvocationTargetException{
 		
 		Method[] methods = dtoClass.getMethods();
 		for (int j = 0; j < methods.length; j++) {
