@@ -258,7 +258,7 @@ public final class AutoTester {
 			returnObjects.put(argListLeft[0], argListRight[0]);
 			return returnObjects;
 		}
-		else if(dtoClass.getName().startsWith("java.")){
+		else if(dtoClass.getName().startsWith("java.") || dtoClass.getName().startsWith("javax.")){
 			Class[] parameters = new Class[]{dtoClass};
 			Class[] paramListLeft = new Class[1];
 			Object[] argListLeft = new Object[1];
