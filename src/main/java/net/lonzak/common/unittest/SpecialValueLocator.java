@@ -68,7 +68,7 @@ public final class SpecialValueLocator {
 
   /**
    * Sets the number of arguments the constructor
-   * @param numberOfArgumentsConstructor
+   * @param numberOfArgumentsConstructor the number of arguments of that constructor
    */
   public void setNumberOfArgumentsConstructor(int numberOfArgumentsConstructor) {
     this.numberOfArgumentsConstructor = numberOfArgumentsConstructor;

@@ -446,7 +446,12 @@ public final class AutoTester {
 						Object returnRight = method.invoke(constRight,(Object[])null);
 						
 						//result of toString() should be equals, too
-						executeEquals(returnLeft,returnRight,false);
+						try{
+						  executeEquals(returnLeft,returnRight,false);
+						}
+						catch(AssertionError ae){
+						  throw new AssertionError("Two objects should have the same toString() method result. The reason for that are usually object addresses (SomeObject@383534aa...) of attributes which don't overwrite toString(). For debugging and clean error logs this should be avoided!", ae);
+						}
 					}
 				}
 				else{
@@ -504,6 +509,15 @@ public final class AutoTester {
             if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
 			  in = (Integer)specialValues.getSpecialValue(parameterIndex+1);
 			}
+            //this is a special case for setting a random scale for a bigDecimal e.g.(1906457549,-619243059): 
+            //a negative scale of such a big int would take too long to calculate
+            //TODO: there should be another way (special value mechanism?) However how to point the user the the exact problem? 
+            //In theory start a new thread which calculates the numbers and if it takes too long abort it...?
+            //If this is happening another time then 
+            else if(parameters.length>1 && parameterIndex>0 && argListLeft[parameterIndex-1] instanceof BigDecimal){
+              //use a smaller number
+              in = getRandomShort().intValue();
+            }
 			else{
 			  in = getRandomInteger();
 			}
@@ -1619,12 +1633,12 @@ public final class AutoTester {
 					//setter changed hashCode thus should also change result of equals
 					if(objectHasChanged(oldHashCode.getExtractedValue(), newHashCode.getExtractedValue())){
 						if(!objectHasChanged(constLeft, constRight)){
-							throw new AssertionError("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") and the hashCode did change however the result of equals did not! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
+							throw new AssertionError("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") with "+Arrays.toString(argListLeft)+" and the hashCode did change however the result of equals did not! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
 						}
 					}
 					else{
 						if(objectHasChanged(constLeft, constRight)){
-							throw new AssertionError("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") and the hashCode did not change however the result of equals did! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
+							throw new AssertionError("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") with "+Arrays.toString(argListLeft)+" and the hashCode did not change however the result of equals did! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
 						}
 					}
 					
@@ -1813,10 +1827,10 @@ public final class AutoTester {
 		//equals to a different object with same values
 		if(!left.equals(right)){
 		  if(warningOnly && enableWarnings){
-		    System.err.println("(Parameter) objects should be equals but in fact they are not ("+left.getClass().getName()+")! An exception may be time related classes which may contain a different timestamp.");
+		    System.err.println("(Parameter) objects should be equals but in fact they are not ("+left.getClass().getName()+") Values: "+left+" vs. "+right+"! An exception may be time related classes which may contain a different timestamp.");
 		  }
 		  else{
-			throw new AssertionError("(Parameter) objects should be equals but in fact they are not ("+left.getClass().getName()+")!  An exception may be time related classes which may contain a different timestamp.");
+			throw new AssertionError("(Parameter) objects should be equals but in fact they are not ("+left.getClass().getName()+") Values: "+left+" vs. "+right+"!  An exception may be time related classes which may contain a different timestamp.");
 		  }
 		}
 	}

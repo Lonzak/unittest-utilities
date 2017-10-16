@@ -4,6 +4,23 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+/**
+ * This can be used to run junit test serveral times.
+ * Usage:
+ * 
+ * <pre>
+ * {@code}
+ * &#064;Rule
+ * public RepeatRule repeatRule = new RepeatRule();
+ * ...
+ * &#064;Repeat(100)
+ * public void testMethodTest(){...}
+ * 
+ * </pre>
+ * <p>
+ * @author 225010
+ *
+ */
 public class RepeatRule implements TestRule {
 
   private static class RepeatStatement extends Statement {
@@ -24,6 +41,19 @@ public class RepeatRule implements TestRule {
 
   }
 
+  /**
+   * Here's an example usage:
+   *
+   * <pre>
+   * {@code}
+   * &#064;IFaceAnnotation(value="")
+   * public interface IFace {
+   *
+   *     &#064;MethodAnnotation("")
+   *     public String Method();
+   * }
+   * </pre>
+   */
   @Override
   public Statement apply(Statement statement, Description description) {
       Statement result = statement;
