@@ -130,10 +130,10 @@ public final class SpecialValueLocator {
      * The location identifies which parameter of which constructor to set.
      * The first parameter (numberOfArguments) is to identify the constructor.
      * A constructor can be identified by the number of arguments it has.
-     * 
-     * The argument is defined by its index e.g. the 3rd parameter should be set so its index is 3.
-     * 
-     * The location is '1' based. Meaning that the first attribute of a 1 argument constructor is 1,1.
+     * <p>
+     * - The argument is defined by its index e.g. the 3rd parameter should be set so its index is 3.<p>
+     * - The location is '1' based. Meaning that the first attribute of a 1 argument constructor is 1,1.<p>
+     * - If only a default constructor exists and a special set Object should be set then use (0,1) 
      * 
      * @param numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex the index of the parameter of that constructor

@@ -1459,7 +1459,7 @@ public final class AutoTester {
               catch (DatatypeConfigurationException e) {
                 throw new RuntimeException("Error creating XMLGregorianCalendar!"+e.getMessage(),e);
               }
-          }
+			}
 			else{
 				throw new AssertionError("Unsupported class: "+parameters[parameterIndex].getName()+" - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
 			}
