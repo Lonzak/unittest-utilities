@@ -441,16 +441,19 @@ public final class AutoTester {
 						Object constLeft = entry.getKey();
 						Object constRight = entry.getValue();
 						
-						//invoke toString
-						Object returnLeft = method.invoke(constLeft,(Object[])null);
-						Object returnRight = method.invoke(constRight,(Object[])null);
+						nullifyUnorderedCollections(constLeft);
+						nullifyUnorderedCollections(constRight);
+						
+	                      //invoke toString
+                        Object returnLeft = method.invoke(constLeft,(Object[])null);
+                        Object returnRight = method.invoke(constRight,(Object[])null);
 						
 						//result of toString() should be equals, too
 						try{
 						  executeEquals(returnLeft,returnRight,false);
 						}
 						catch(AssertionError ae){
-						  throw new AssertionError("Two objects should have the same toString() method result. The reason for that are usually object addresses (SomeObject@383534aa...) of attributes which don't overwrite toString(). For debugging and clean error logs this should be avoided!", ae);
+						  throw new AssertionError("Two identical objects should have the same toString() method result. The reason for that are usually object addresses (SomeObject@383534aa...) of attributes which don't overwrite toString(). For debugging and clean error logs this should be avoided!", ae);
 						}
 					}
 				}
@@ -462,9 +465,28 @@ public final class AutoTester {
 	  }
 	  catch(InvocationTargetException ite){
 	    if(ite.getTargetException() instanceof NullPointerException){
-	      throw new InvocationTargetException(ite.getTargetException(),"A NullpointerException occured which indicates that a bug was found in the 'toString()' method.");
+	      throw new AssertionError("A NullpointerException occured which indicates that a bug was found in the 'toString()' method.",ite.getTargetException());
 	    }
 	  }
+	}
+
+	/**
+	 * If a method call (e.g. toString()) should be comparable some Collection types must be nullified (e.g. HashSet, HashMap) 
+	 * because the ordering is always different. 
+	 * 
+	 * @param workPiece
+	 * @throws IllegalAccessException 
+	 * @throws IllegalArgumentException 
+	 */
+	private static void nullifyUnorderedCollections(Object workPiece) throws IllegalArgumentException, IllegalAccessException{
+      Field[] fields = workPiece.getClass().getDeclaredFields();
+      
+      for (Field field : fields) {
+        if(field.getType().isAssignableFrom(HashSet.class) || field.getType().isAssignableFrom(HashMap.class)){
+          field.setAccessible(true);
+          field.set(workPiece, null);
+        }
+      }
 	}
 	
 	private static void fillPrimitiveType(Class<?>[] parameters, Class<?>[] paramListLeft, Object[] argListLeft, Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
