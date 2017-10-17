@@ -482,7 +482,8 @@ public final class AutoTester {
       Field[] fields = workPiece.getClass().getDeclaredFields();
       
       for (Field field : fields) {
-        if(field.getType().isAssignableFrom(HashSet.class) || field.getType().isAssignableFrom(HashMap.class)){
+        //intentionally used "getSimpleName().equals("DateTime")" to apply to org.joda.time.* and java.util.time
+        if(field.getType().isAssignableFrom(HashSet.class) || field.getType().isAssignableFrom(HashMap.class) || field.getType().getSimpleName().equals("DateTime") || field.getType().getSimpleName().equals("Date")){
           field.setAccessible(true);
           field.set(workPiece, null);
         }
