@@ -151,7 +151,7 @@ public class ExampleDTO {
   }
 
   public Certificate getCert() {
-    return cert;
+    return this.cert;
   }
 
   public void setCert(Certificate cert) {

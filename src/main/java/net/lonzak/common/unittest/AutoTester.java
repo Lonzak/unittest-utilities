@@ -60,6 +60,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -77,7 +78,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.Map.Entry;
 import java.util.Queue;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -108,7 +108,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 public final class AutoTester {
 	
-	private static Random r = new Random(System.nanoTime());
+	private static SecureRandom r = new SecureRandom();
 	private static boolean enableWarnings = true;
 
 	//only static methods thus no instantiation
@@ -167,9 +167,6 @@ public final class AutoTester {
 			  
 		//abstract classes or interfaces can not be instantiated
 		if(Modifier.isAbstract(dtoClass.getModifiers())) throw new AssertionError(dtoClass.getSimpleName()+" is an abstract class or an interface and can thus not be instantiated. Use on of its subclasses instead!");
-		
-		//Enum classes do not need to (and also can't) be tested 
-		if(dtoClass.isEnum()) throw new AssertionError(dtoClass.getSimpleName()+" is an enum class and does not need to be tested!");
 		
 		//check whether equals and hashCode was overwritten
 		boolean equalsExists = classImplementsEquals(dtoClass);
@@ -720,7 +717,7 @@ public final class AutoTester {
               l = (Long)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
-              l = getRandomLong();
+              l = getRandomLongAsObject();
             }
 			
 			argListLeft[parameterIndex]= l;
@@ -736,7 +733,7 @@ public final class AutoTester {
               f = (Float)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
-              f = getRandomFloat();
+              f = getRandomFloatAsObject();
             }
 			argListLeft[parameterIndex]= f;  
 			argListRight[parameterIndex]= f;
@@ -751,7 +748,7 @@ public final class AutoTester {
               d = (Double)specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
-              d = getRandomDouble();
+              d = getRandomDoubleAsObject();
             }
 			argListLeft[parameterIndex]= d;
 			argListRight[parameterIndex]= d;
@@ -1090,7 +1087,7 @@ public final class AutoTester {
 		
 		if(objects.length>0){
   		//randomly select value
-          int enumValue = getRandomInt(objects.length);
+          int enumValue = getRandomIntIncludingZero(objects.length);
   		
           paramListLeft[parameterIndex] = objects[enumValue].getClass();
           paramListRight[parameterIndex] = objects[enumValue].getClass();
@@ -1483,6 +1480,13 @@ public final class AutoTester {
                 throw new RuntimeException("Error creating XMLGregorianCalendar!"+e.getMessage(),e);
               }
 			}
+			else if(parameters[parameterIndex].isAssignableFrom(LocalDate.class)){
+			  paramListLeft[parameterIndex] = LocalDate.class;
+              paramListRight[parameterIndex] = LocalDate.class;
+              
+              argListLeft[parameterIndex]= LocalDate.now();
+              argListRight[parameterIndex]= LocalDate.now();
+			}
 			else{
 				throw new AssertionError("Unsupported class: "+parameters[parameterIndex].getName()+" - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
 			}
@@ -1551,7 +1555,7 @@ public final class AutoTester {
 				constructor.setAccessible(true);
 			}
 			
-			//clear constructedClasses for new constructors (recursively called but with allConstructors one is able to identify the initial loop)
+			//clear constructedClasses for new constructors (recursively called but with 'allConstructors' one is able to identify the initial loop)
 			if(allConstructors && constructedClasses.size()>1){
 			  constructedClasses.subList(1, constructedClasses.size()).clear();
 			}
@@ -1559,51 +1563,69 @@ public final class AutoTester {
 			Object newObjLeft;
 			Object newObjRight;
 			
-			try{
-    			//handle no-argument constructors differently otherwise an exception is thrown
-    			if(parameters.length>0){
-    				Object[] argListLeft=new Object[parameters.length];
-    				Object[] argListRight=new Object[parameters.length];
-    				
-    				Type[] types = constructor.getGenericParameterTypes();
-    				
-    				//iterate parameters to avoid circular class creation which results in an StackOverflow Error
-    				boolean foundCycle=false;
-    				for(Class<?> parameterClass : parameters){
-    				  
-    				  for(Class<?> constructedClass : constructedClasses){
-        				  if(parameterClass.isAssignableFrom(constructedClass)){
-        				    //Skip constructor: A class creation cycle has been detected. The class '"+constructedClass.getSimpleName()+"' should be created however is needed as parameter for "+constructor.getDeclaringClass().getSimpleName()+" at the same time
-        				    foundCycle=true;
-        				    break;
-        				  }
-    				  }
-    				}
-    				if(foundCycle) {
-    				  continue;
-    				}
-    				
-    				fillEverything(constructedClasses, parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
-    				//call constructor
-    				newObjLeft = constructor.newInstance(argListLeft);
-    				newObjRight = constructor.newInstance(argListRight);
-    			}
-    			else{
-    				//call constructor
-    				newObjLeft = constructor.newInstance();
-    				newObjRight = constructor.newInstance();
-    			}
+			//check if its a enum, then directly instantiate it
+			if(constructor.getDeclaringClass().isEnum()){
+			  //Class<?> object = Class.forName();
+			  Object[] objects = constructor.getDeclaringClass().getEnumConstants();
+		        
+		      if(objects.length>0){
+		      //randomly select value
+		        int enumValue = getRandomIntIncludingZero(objects.length);
+		        newObjLeft = objects[enumValue];
+		        newObjRight = objects[enumValue];
+		      }
+		      else{
+		        throw new IllegalArgumentException(constructor.getDeclaringClass().getCanonicalName()+" is an empty enum and can thus not be tested. Add a value or exclude it from the tests.");
+		      }
 			}
-			//allConstructors==false then only one constructor call should succeed (e.g. if parameters should be instantiated just an exemplary object is needed) => skipping failed constructors
-			catch(InstantiationException | IllegalAccessException | InvocationTargetException | AssertionError e){
-              if(!allConstructors){
-                stored = e;
-                continue;
-              }
-              else{
-                throw e;
-              }
-            }
+			else{
+			
+    			try{
+        			//handle no-argument constructors differently otherwise an exception is thrown
+        			if(parameters.length>0){
+        				Object[] argListLeft=new Object[parameters.length];
+        				Object[] argListRight=new Object[parameters.length];
+        				
+        				Type[] types = constructor.getGenericParameterTypes();
+        				
+        				//iterate parameters to avoid circular class creation which results in an StackOverflow Error
+        				boolean foundCycle=false;
+        				for(Class<?> parameterClass : parameters){
+        				  
+        				  for(Class<?> constructedClass : constructedClasses){
+            				  if(parameterClass.isAssignableFrom(constructedClass)){
+            				    //Skip constructor: A class creation cycle has been detected. The class '"+constructedClass.getSimpleName()+"' should be created however is needed as parameter for "+constructor.getDeclaringClass().getSimpleName()+" at the same time
+            				    foundCycle=true;
+            				    break;
+            				  }
+        				  }
+        				}
+        				if(foundCycle) {
+        				  continue;
+        				}
+        				
+        				fillEverything(constructedClasses, parameters, types, argListLeft, argListRight, implOfAbstractClasses, specialValues);
+        				//call constructor
+        				newObjLeft = constructor.newInstance(argListLeft);
+        				newObjRight = constructor.newInstance(argListRight);
+        			}
+        			else{
+        				//call constructor
+        				newObjLeft = constructor.newInstance();
+        				newObjRight = constructor.newInstance();
+        			}
+    			}
+    			//allConstructors==false then only one constructor call should succeed (e.g. if parameters should be instantiated just an exemplary object is needed) => skipping failed constructors
+    			catch(InstantiationException | IllegalAccessException | InvocationTargetException | AssertionError e){
+                  if(!allConstructors){
+                    stored = e;
+                    continue;
+                  }
+                  else{
+                    throw e;
+                  }
+                }
+			}
 			//return newly created objects
 			returnObjects.put(newObjLeft,newObjRight);
 		}
@@ -1611,7 +1633,7 @@ public final class AutoTester {
 		  throw new RuntimeException(stored);
 		}
 		else if(returnObjects.isEmpty() && enableWarnings){
-		  System.err.println("None of the constructors of the class "+constructors.get(0).getDeclaringClass().getSimpleName()+" could be instantiated (due to cretion cycle(s)). Consider revising your application design.");
+		  System.err.println("None of the constructors of the class "+constructors.get(0).getDeclaringClass().getSimpleName()+" could be instantiated (due to creation cycle(s)). Consider revising your application design.");
 		}
 	}
 	
@@ -2066,7 +2088,7 @@ public final class AutoTester {
 	
 	static byte[] getRandomByteArrayPrimitive(){
 		
-		byte[] b = new byte[r.nextInt(42)];
+		byte[] b = new byte[AutoTester.getRandomInt(42)];
 		AutoTester.r.nextBytes(b);
 		
 		if(b.length>0){
@@ -2078,7 +2100,7 @@ public final class AutoTester {
 	}
 	
 	static Byte[] getRandomByteArray(){
-		byte[] b = new byte[r.nextInt(42)];
+		byte[] b = new byte[AutoTester.getRandomInt(42)];
 		AutoTester.r.nextBytes(b);
 		
 		Byte[] objectByteArray = new Byte[b.length];
@@ -2089,101 +2111,139 @@ public final class AutoTester {
 	}
 	
 	static Integer getRandomInteger(){
-		return Integer.valueOf(AutoTester.r.nextInt());
+	  return Integer.valueOf(getRandomInt());
 	}
-	
+		
 	static int getRandomInt(){
-      return AutoTester.r.nextInt();
+      return AutoTester.getRandomInt(Integer.MAX_VALUE);
     }
 	
 	static int getRandomInt(int n){
-		return AutoTester.r.nextInt(n);
+	   int i = 0;
+	   while(i==0) i = AutoTester.r.nextInt(n);
+
+	   return i;
 	}
 	
+	/**
+	 * 
+	 * @param n
+	 * @return
+	 */
+	static int getRandomIntIncludingZero(int range){
+	  return AutoTester.r.nextInt(range);
+   }
+	
 	static String getRandomUnsignedIntAsString(int range){
-		return String.valueOf(Math.abs(AutoTester.r.nextInt(range)));
+		return String.valueOf(Math.abs(getRandomInt(range)));
 	}
 	
 	static int[] getRandomIntArrayPrimitive(){
-		int[] b = new int[r.nextInt(42)];
+		int[] b = new int[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < b.length; i++){
-			b[i] = getRandomInteger().intValue();
+			b[i] = AutoTester.getRandomInt();
 		}
 		return b;
 	}
 	
 	static Integer[] getRandomIntegerArray(){
-		Integer[] b = new Integer[r.nextInt(42)];
+		Integer[] b = new Integer[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < b.length; i++){
-			b[i] = getRandomInteger();
+			b[i] = AutoTester.getRandomInteger();
 		}
 		return b;
 	}
 	
-	static Float getRandomFloat(){
-		return Float.valueOf(AutoTester.r.nextFloat());
+	/**
+	 * 
+	 * @return a primitive random float number except 0
+	 */
+	static float getRandomFloat(){
+	  float f = 0f;
+      while(f==0f) f = AutoTester.r.nextFloat();
+	  
+      return f;
+    }
+	
+	static Float getRandomFloatAsObject(){
+		return Float.valueOf(getRandomFloat());
 	}
 	
 	static float[] getRandomFloatArrayPrimitive(){
-		float[] f = new float[r.nextInt(42)];
+		float[] f = new float[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < f.length; i++){
-			f[i] = getRandomFloat().floatValue();
+			f[i] = AutoTester.getRandomFloat();
 		}
 		return f;
 	}
 	
 	static Float[] getRandomFloatArray(){
-		Float[] f = new Float[r.nextInt(42)];
+		Float[] f = new Float[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < f.length; i++){
-			f[i] = getRandomFloat();
+			f[i] = AutoTester.getRandomFloatAsObject();
 		}
 		return f;
 	}
 	
-	static Double getRandomDouble(){
-		return Double.valueOf(AutoTester.r.nextDouble());
+	static double getRandomDouble(){
+	   double d = 0d;
+	   while(d==0d) d = AutoTester.r.nextDouble();
+	      
+	   return d;
+	}
+	
+	static Double getRandomDoubleAsObject(){
+		return Double.valueOf(AutoTester.getRandomDouble());
 	}
 	
 	static double[] getRandomDoubleArrayPrimitive(){
-		double[] d = new double[r.nextInt(42)];
+		double[] d = new double[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < d.length; i++){
-			d[i] = getRandomDouble().doubleValue();
+			d[i] = AutoTester.getRandomDouble();
 		}
 		return d;
 	}
 	
 	static Double[] getRandomDoubleArray(){
-		Double[] d = new Double[r.nextInt(42)];
+		Double[] d = new Double[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < d.length; i++){
-			d[i] = getRandomDouble();
+			d[i] = AutoTester.getRandomDoubleAsObject();
 		}
 		return d;
 	}
+
+	static long getRandomLong(){
+	  long l = 0; 
+	  while(l==0) {
+	    l = AutoTester.r.nextLong();
+	  }
+	  return l;
+	}
 	
-	static Long getRandomLong(){
-		return Long.valueOf(AutoTester.r.nextLong());
+	static Long getRandomLongAsObject(){
+		return Long.valueOf(AutoTester.getRandomLong());
 	}
 	
 	static long[] getRandomLongArrayPrimitive(){
-		long[] l = new long[r.nextInt(42)];
+		long[] l = new long[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < l.length; i++){
-			l[i] = getRandomLong().longValue();
+			l[i] = AutoTester.getRandomLong();
 		}
 		return l;
 	}
 	
 	static Long[] getRandomLongArray(){
-		Long[] l = new Long[r.nextInt(42)];
+		Long[] l = new Long[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < l.length; i++){
-			l[i] = getRandomLong();
+			l[i] = AutoTester.getRandomLongAsObject();
 		}
 		return l;
 	}
@@ -2193,7 +2253,7 @@ public final class AutoTester {
 	}
 	
 	static boolean[] getRandomBooleanArrayPrimitive(){
-		boolean[] l = new boolean[r.nextInt(42)];
+		boolean[] l = new boolean[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < l.length; i++){
 			l[i] = getRandomBoolean().booleanValue();
@@ -2202,7 +2262,7 @@ public final class AutoTester {
 	}
 	
 	static Boolean[] getRandomBooleanArray(){
-		Boolean[] b = new Boolean[r.nextInt(42)];
+		Boolean[] b = new Boolean[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < b.length; i++){
 			b[i] = getRandomBoolean();
@@ -2211,11 +2271,11 @@ public final class AutoTester {
 	}
 	
 	static Short getRandomShort(){
-		return Short.valueOf((short)(r.nextInt(Short.MIN_VALUE*(-2)) - Short.MIN_VALUE));
+		return Short.valueOf((short)(AutoTester.getRandomInt(Short.MIN_VALUE*(-2)) - Short.MIN_VALUE));
 	}
 	
 	static short[] getRandomShortArrayPrimitive(){
-		short[] s = new short[r.nextInt(42)];
+		short[] s = new short[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < s.length; i++){
 			s[i] = getRandomShort().shortValue();
@@ -2224,7 +2284,7 @@ public final class AutoTester {
 	}
 	
 	static Short[] getRandomShortArray(){
-		Short[] s = new Short[r.nextInt(42)];
+		Short[] s = new Short[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < s.length; i++){
 			s[i] = getRandomShort();
@@ -2233,11 +2293,11 @@ public final class AutoTester {
 	}
 	
 	static Character getRandomCharacter(){
-		return Character.valueOf((char)r.nextInt(Character.MAX_VALUE+1));
+		return Character.valueOf((char)AutoTester.getRandomInt(Character.MAX_VALUE+1));
 	}
 	
 	static char[] getRandomCharArrayPrimitive(){
-		char[] c = new char[r.nextInt(42)];
+		char[] c = new char[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < c.length; i++){
 			c[i] = getRandomCharacter().charValue();
@@ -2246,7 +2306,7 @@ public final class AutoTester {
 	}
 	
 	static Character[] getRandomCharacterArray(){
-		Character[] c = new Character[r.nextInt(42)];
+		Character[] c = new Character[AutoTester.getRandomInt(42)];
 		
 		for(int i = 0; i < c.length; i++){
 			c[i] = getRandomCharacter();
@@ -2259,7 +2319,7 @@ public final class AutoTester {
 	}
 	
 	static BigDecimal getRandomBigDecimal(){
-		return new BigDecimal(Math.abs(r.nextInt(Integer.MAX_VALUE)));
+		return new BigDecimal(Math.abs(AutoTester.getRandomInt(Integer.MAX_VALUE)));
 	}
 	
 	private static class ExtractionValue{

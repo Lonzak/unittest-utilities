@@ -27,7 +27,6 @@ package net.lonzak.examples;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import net.lonzak.common.unittest.AutoTester;
@@ -36,6 +35,7 @@ import net.lonzak.common.unittest.SpecialValueLocator.Location;
 import net.lonzak.examples.dtos.ExampleDTO;
 import net.lonzak.examples.dtos.RedNumber;
 import net.lonzak.examples.enums.ClassOfColor;
+import net.lonzak.examples.enums.LineOfColor;
 import net.lonzak.examples.exceptions.DomainException;
 import net.lonzak.examples.exceptions.ServiceNotAvailableException;
 import net.lonzak.examples.exceptions.TechnicalException;
@@ -75,5 +75,11 @@ public class AutoTesterTest {
       exclusions.add("floatArray");
       
       AutoTester.testDTOClass(ExampleDTO.class,null,exclusions,null);
+    }
+    
+    @Test
+    public void testEnum(){
+      AutoTester.testDTOClass(LineOfColor.class);
+      AutoTester.testDTOClass(ClassOfColor.class);
     }
 }
