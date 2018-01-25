@@ -61,6 +61,7 @@ import java.security.cert.X509Certificate;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -1487,6 +1488,13 @@ public final class AutoTester {
               argListLeft[parameterIndex]= LocalDate.now();
               argListRight[parameterIndex]= LocalDate.now();
 			}
+			else if(parameters[parameterIndex].isAssignableFrom(LocalTime.class)){
+              paramListLeft[parameterIndex] = LocalTime.class;
+              paramListRight[parameterIndex] = LocalTime.class;
+              
+              argListLeft[parameterIndex]= LocalTime.now();
+              argListRight[parameterIndex]= LocalTime.now();
+            }
 			else{
 				throw new AssertionError("Unsupported class: "+parameters[parameterIndex].getName()+" - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
 			}
