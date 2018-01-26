@@ -117,19 +117,19 @@ public final class AutoTester {
 	}
 	
 	/**
-	 * Automatically tests an DTO/Entity/Java Bean style or Exception class.
+	 * Automatically tests an DTO/Entity/Java Bean style, Exception or Enum class.
 	 * 
 	 * @param dtoClass to test
 	 * @throws AssertionError if test fails
 	 */
-	public static void testDTOClass(Class<?> dtoClass){
-		testDTOClass(dtoClass, new ArrayList<Class<?>>(), new ArrayList<String>(), SpecialValueLocator.NONE);
+	public static void testClass(Class<?> dtoClass){
+		testClass(dtoClass, new ArrayList<Class<?>>(), new ArrayList<String>(), SpecialValueLocator.NONE);
 	}
 	
 	/**
 	 * Tests a DTO/Entity/Java Bean style or Exception class.
 	 * Please note, that all values which are used for the tests are randomly generated.
-	 * In case the default test method {@link #testDTOClass(Class)} fails there are several options:
+	 * In case the default test method {@link #testClass(Class)} fails there are several options:
 	 * 
 	 * <ul>
 	 * <li>1. provide specific values for certain parameters (e.g. special string formatting, specific numbers ...)</li>
@@ -161,7 +161,7 @@ public final class AutoTester {
 	 * @param ignorePropertiesForGetSetTest the name of the attribute which should be excluded
 	 * @param specialValues for the constructors/set methods to use
 	 */
-	public static void testDTOClass(Class<?> dtoClass, List<Class<?>> implOfAbstractClasses, List<String> ignorePropertiesForGetSetTest, SpecialValueLocator specialValues){
+	public static void testClass(Class<?> dtoClass, List<Class<?>> implOfAbstractClasses, List<String> ignorePropertiesForGetSetTest, SpecialValueLocator specialValues){
 		if(implOfAbstractClasses==null) implOfAbstractClasses = new ArrayList<>();
 		if(ignorePropertiesForGetSetTest==null) ignorePropertiesForGetSetTest = new ArrayList<>();
 		if(specialValues==null) specialValues = SpecialValueLocator.NONE;
@@ -219,6 +219,112 @@ public final class AutoTester {
 	public static void setEnableWarnings(boolean enableWarnings) {
 		AutoTester.enableWarnings = enableWarnings;
 	}
+	
+	 /**
+     * Calls a private constructor by reflection for full code coverage
+     * if the code coverage tool skips private constructors.
+     * 
+     * @param classToTest class with private constructor to test
+     * @return the created objects
+     */
+    public static HashMap<Object, Object> testPrivateConstructor(Class<?> classToTest) {
+        
+        Constructor<?>[] cons = classToTest.getDeclaredConstructors();
+        
+        boolean privateExists = false;
+        for(Constructor<?> constructor : cons) {
+          if(Modifier.isPrivate(constructor.getModifiers())) {
+            privateExists=true;
+          }
+        }
+        
+        if(privateExists) {
+          try {
+            return createObjects(new ArrayList<Class<?>>(), classToTest, null, SpecialValueLocator.NONE, true);
+          }
+          catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+          }
+        }
+        throw new RuntimeException("No private constructor found.");
+    }    
+    
+    /**
+     * Function for testing private methods.
+     * 
+     * In certain cases may prove necessary to test private methods and not to soften visibility from
+     * private to protected/ package protected / public (e.g. to test dependency injected get() Methods). 
+     * 
+     * @param classToTest The class which should be tested
+     * @param nameOfMethod The name of the method
+     * @param parameterValues A list of 0...n parameters. In case of no parameters just skip this parameter.
+     * 
+     * @return the return value of the private method
+     * @throws AssertionError in case an exception was thrown when calling the private method (IllegalAccessException, IllegalArgumentException, InovocationTargetException, SecurityException...) 
+     */
+    public static Object testPrivateMethod(Object classToTest, String nameOfMethod, Object... parameterValues) {
+        
+      if(classToTest instanceof Class) {
+        throw new IllegalArgumentException("Invalid argument. "+classToTest.toString()+" must be an actual object and not Class<?>");
+      }
+        Class<?>[] parameterTypes=null;
+        if(parameterValues!=null){
+            parameterTypes = new Class<?> [parameterValues.length];
+            
+            for(int i=0; i<parameterValues.length;i++){
+                parameterTypes[i]=parameterValues[i].getClass();
+            }
+        }
+        
+        try{
+            
+            Method method=null;
+            Class<?> classIndex = classToTest.getClass();
+
+            //iterate over (super) classes since private method may be inherited
+            do{
+                //exception catching as part of the normal code is ugly 
+                try{
+                  
+                  Method[] m = classIndex.getDeclaredMethods();
+                  method = classIndex.getDeclaredMethod(nameOfMethod, parameterTypes);
+                    
+                    
+                    //only if method is private
+                    if(Modifier.isPrivate(method.getModifiers())) {
+                      //method found thus exit
+                      break;
+                    }
+                }
+                catch(NoSuchMethodException nsme){
+                    //method not found thus check super class
+                    classIndex = classIndex.getSuperclass();
+                }
+            }
+            while(classIndex!=null);
+            
+            if(method==null) throw new NoSuchMethodException(classToTest.getClass().getName() + " private " + nameOfMethod + Arrays.toString(parameterValues));
+            
+            //no method matching necessary
+            method.setAccessible(true);
+            return method.invoke(classToTest,parameterValues);
+        }
+        catch (InvocationTargetException ite) {
+            throw new RuntimeException(ite);
+        }
+        catch (SecurityException se) {
+            throw new AssertionError(se);
+        }
+        catch (NoSuchMethodException nsme) {
+            throw new AssertionError(nsme);
+        }
+        catch (IllegalArgumentException iae) {
+            throw new AssertionError(iae);
+        }
+        catch (IllegalAccessException iae) {
+            throw new AssertionError(iae);
+        }
+    }    
 
 	/**
 	 * Checks if the equals method works as expected.
@@ -283,7 +389,7 @@ public final class AutoTester {
 			}
 				
 			if(implementationClass==null){
-				throw new AssertionError("No implementation found for abstract class '"+dtoClass.getName()+"'. Please use the testDTOClass(Class<?>, List implementationsOfAbstractClasses) method and supply a suitable implementation.");
+				throw new AssertionError("No implementation found for abstract class '"+dtoClass.getName()+"'. Please use the testClass(Class<?>, List implementationsOfAbstractClasses) method and supply a suitable implementation.");
 			}
 			
 			//overwrite DTO class

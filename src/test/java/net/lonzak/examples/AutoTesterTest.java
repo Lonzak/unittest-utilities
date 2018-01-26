@@ -32,6 +32,7 @@ import org.junit.Test;
 import net.lonzak.common.unittest.AutoTester;
 import net.lonzak.common.unittest.SpecialValueLocator;
 import net.lonzak.common.unittest.SpecialValueLocator.Location;
+import net.lonzak.examples.classes.Constructor;
 import net.lonzak.examples.dtos.ExampleDTO;
 import net.lonzak.examples.dtos.RedNumber;
 import net.lonzak.examples.enums.ClassOfColor;
@@ -45,28 +46,28 @@ public class AutoTesterTest {
     @Test
     public void testDTOs() {
       //Default Tests
-      //AutoTester.testDTOClass(BlackNumber.class);
-      AutoTester.testDTOClass(ExampleDTO.class);
+      //AutoTester.testClass(BlackNumber.class);
+      AutoTester.testClass(ExampleDTO.class);
     }
     
     @Test
     public void testWithPredefinedValues(){
       //Tests with a special value
-      AutoTester.testDTOClass(RedNumber.class, null, null, new SpecialValueLocator(new Location(1,1), "9910000001111"));
+      AutoTester.testClass(RedNumber.class, null, null, new SpecialValueLocator(new Location(1,1), "9910000001111"));
       
       //Test with several special values
       HashMap<Location, Object> customValues = new HashMap<>();
       customValues.put(new Location(3,2), ClassOfColor.H5);
       customValues.put(new Location(1,1), "1110011111111");
-      AutoTester.testDTOClass(RedNumber.class, null,null, new SpecialValueLocator(customValues));
+      AutoTester.testClass(RedNumber.class, null,null, new SpecialValueLocator(customValues));
     }
     
     @Test
     public void testExceptions(){
       //Tests with Exception classes
-      AutoTester.testDTOClass(DomainException.class);
-      AutoTester.testDTOClass(ServiceNotAvailableException.class);
-      AutoTester.testDTOClass(TechnicalException.class);
+      AutoTester.testClass(DomainException.class);
+      AutoTester.testClass(ServiceNotAvailableException.class);
+      AutoTester.testClass(TechnicalException.class);
     }
     
     @Test
@@ -74,12 +75,18 @@ public class AutoTesterTest {
       ArrayList<String> exclusions = new ArrayList<>();
       exclusions.add("floatArray");
       
-      AutoTester.testDTOClass(ExampleDTO.class,null,exclusions,null);
+      AutoTester.testClass(ExampleDTO.class,null,exclusions,null);
     }
     
     @Test
     public void testEnum(){
-      AutoTester.testDTOClass(LineOfColor.class);
-      AutoTester.testDTOClass(ClassOfColor.class);
+      AutoTester.testClass(LineOfColor.class);
+      AutoTester.testClass(ClassOfColor.class);
+    }
+
+    @Test
+    public void testPrivate(){
+      HashMap<Object, Object> map = AutoTester.testPrivateConstructor(Constructor.class);
+      AutoTester.testPrivateMethod(map.keySet().toArray()[0], "setA", "TEST");
     }
 }
