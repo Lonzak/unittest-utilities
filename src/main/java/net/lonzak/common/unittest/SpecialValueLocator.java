@@ -44,6 +44,7 @@ public final class SpecialValueLocator {
   public SpecialValueLocator(Location location, Object specialValue) {
     this.specialValues= new HashMap<>();
     this.specialValues.put(location, specialValue);
+    this.numberOfArgumentsConstructor=location.getNumberOfArguments();
   }
   
   /**
@@ -67,10 +68,14 @@ public final class SpecialValueLocator {
   }
 
   /**
-   * Sets the number of arguments the constructor
+   * Sets the number of arguments of the constructor
+   * 
+   * This variable is set while iterating over the constructors in the AutoTester.
+   * Not to be publicly called.
+   * 
    * @param numberOfArgumentsConstructor the number of arguments of that constructor
    */
-  public void setNumberOfArgumentsConstructor(int numberOfArgumentsConstructor) {
+  void setNumberOfArgumentsConstructor(int numberOfArgumentsConstructor) {
     this.numberOfArgumentsConstructor = numberOfArgumentsConstructor;
   }
 
@@ -105,9 +110,22 @@ public final class SpecialValueLocator {
       return this.specialValues.get(new Location(this.numberOfArgumentsConstructor,parameterIndex));
     }
     else{
+      if(this.specialValues.isEmpty()) {
+        return null;
+      }
       throw new IllegalStateException("The current constructor index has not been set!");
     }
   }
+  
+  /**
+   * Checks whether the SpecialValue locator is used or not (cp. {@link SpecialValueLocator#NONE})
+   * @return true if used otherwise false
+   */
+  public boolean isEmpty() {
+    if(this.specialValues.isEmpty()) return true;
+    return false;
+  }
+
   
   @Override
   public String toString() {
@@ -150,7 +168,7 @@ public final class SpecialValueLocator {
     public final int getParameterIndex() {
       return this.parameterIndex;
     }
-
+    
     @Override
     public int hashCode() {
       final int prime = 31;

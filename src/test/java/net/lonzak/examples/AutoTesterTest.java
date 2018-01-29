@@ -24,6 +24,14 @@
  */
 package net.lonzak.examples;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -32,6 +40,7 @@ import org.junit.Test;
 import net.lonzak.common.unittest.AutoTester;
 import net.lonzak.common.unittest.SpecialValueLocator;
 import net.lonzak.common.unittest.SpecialValueLocator.Location;
+import net.lonzak.examples.classes.ArrayObject;
 import net.lonzak.examples.classes.Constructor;
 import net.lonzak.examples.dtos.ExampleDTO;
 import net.lonzak.examples.dtos.RedNumber;
@@ -88,5 +97,24 @@ public class AutoTesterTest {
     public void testPrivate(){
       HashMap<Object, Object> map = AutoTester.testPrivateConstructor(Constructor.class);
       AutoTester.testPrivateMethod(map.keySet().toArray()[0], "setA", "TEST");
+    }
+
+    @Test
+    public void testTimes() {
+      AutoTester.testClass(LocalTime.class);
+      AutoTester.testClass(LocalDate.class);
+      AutoTester.testClass(LocalDateTime.class);
+      AutoTester.testClass(ZoneOffset.class);
+      AutoTester.testClass(DateTimeFormatter.class);
+      AutoTester.testClass(Instant.class);
+      AutoTester.testClass(ZonedDateTime.class);
+    }
+    
+    @Test
+    public void testArrays() {
+      HashMap<Location, Object> customValues = new HashMap<>();
+      customValues.put(new Location(2,1), new int [] {1});
+      customValues.put(new Location(2,2), new long [] {2L});
+      AutoTester.testClass(ArrayObject.class, null,null, new SpecialValueLocator(customValues));
     }
 }

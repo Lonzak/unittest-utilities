@@ -60,8 +60,14 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -363,13 +369,13 @@ public final class AutoTester {
 			return returnObjects;
 		}
 		else if(dtoClass.getName().startsWith("java.") || dtoClass.getName().startsWith("javax.")){
-			Class[] parameters = new Class[]{dtoClass};
-			Class[] paramListLeft = new Class[1];
+			Class<?>[] parameters = new Class[]{dtoClass};
+			Class<?>[] paramListLeft = new Class[1];
 			Object[] argListLeft = new Object[1];
-			Class[] paramListRight = new Class[1];
+			Class<?>[] paramListRight = new Class[1];
 			Object[] argListRight = new Object[1];
 				
-			fillSpecialObject(parameters, paramListLeft, argListLeft, paramListRight, argListRight, 0, specialValues);
+			fillSpecialJavaObjects(parameters, paramListLeft, argListLeft, paramListRight, argListRight, 0, specialValues);
 			returnObjects.put(argListLeft[0], argListRight[0]);
 			return returnObjects;
 		}
@@ -492,9 +498,12 @@ public final class AutoTester {
 			if (current.getName().startsWith("get") || current.getName().startsWith("set")) {
 				String name = current.getName().substring(3);
 				
-				name = name.subSequence(0, 1).toString().toLowerCase() + name.substring(1);
-				if (propertiesToIgnore.contains(name)) {
+				//there are some methods only called 'get' (e.g. java.time.LocalTime)
+				if(name.length()>0) {
+				  name = name.subSequence(0, 1).toString().toLowerCase() + name.substring(1);
+				  if (propertiesToIgnore.contains(name)) {
 					toRemove.add(current);
+				  }
 				}
 			}
 		}
@@ -548,9 +557,16 @@ public final class AutoTester {
 						nullifyUnorderedCollections(constLeft);
 						nullifyUnorderedCollections(constRight);
 						
-	                      //invoke toString
-                        Object returnLeft = method.invoke(constLeft,(Object[])null);
-                        Object returnRight = method.invoke(constRight,(Object[])null);
+						Object returnLeft;
+						Object returnRight;
+						try {
+						  //invoke toString
+                          returnLeft = method.invoke(constLeft,(Object[])null);
+                          returnRight = method.invoke(constRight,(Object[])null);
+						}
+						catch(IllegalArgumentException iae) {
+                          throw new IllegalArgumentException("Type does not match : "+dtoClass.getName()+" != "+constLeft.getClass().getName()+" ("+iae.getMessage()+")",iae);
+                        }
 						
 						//result of toString() should be equals, too
 						try{
@@ -906,7 +922,7 @@ public final class AutoTester {
 			int [] in;
             Object clazz = specialValues.getSpecialValue(parameterIndex+1);
             if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              in = (int[])specialValues.getSpecialValue(parameterIndex+1+1);
+              in = (int[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
               in = getRandomIntArrayPrimitive();
@@ -1080,7 +1096,7 @@ public final class AutoTester {
 			Double [] d;
             Object clazz = specialValues.getSpecialValue(parameterIndex+1);
             if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              d= (Double[])specialValues.getSpecialValue(parameterIndex+1+1);
+              d= (Double[])specialValues.getSpecialValue(parameterIndex+1);
             }
             else{
               d = getRandomDoubleArray();
@@ -1370,16 +1386,17 @@ public final class AutoTester {
 		}
 	}
 	
-	private static void fillSpecialObject(Class<?>[] parameters, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
+	private static void fillSpecialJavaObjects(Class<?>[] parameters, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
 		try{
 		  
-          Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-          if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
+		  Object clazz = specialValues.getSpecialValue(parameterIndex+1);
+		  if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
+          
 		    paramListLeft[parameterIndex] = specialValues.getSpecialValue(parameterIndex+1).getClass();
-            paramListRight[parameterIndex] = specialValues.getSpecialValue(parameterIndex+1).getClass();
+		    paramListRight[parameterIndex] = specialValues.getSpecialValue(parameterIndex+1).getClass();
 		    
-            argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
-            argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+		    argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+		    argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
           }
           else{
             if(parameters[parameterIndex].isAssignableFrom(URL.class)){
@@ -1591,16 +1608,58 @@ public final class AutoTester {
 			  paramListLeft[parameterIndex] = LocalDate.class;
               paramListRight[parameterIndex] = LocalDate.class;
               
-              argListLeft[parameterIndex]= LocalDate.now();
-              argListRight[parameterIndex]= LocalDate.now();
+              argListLeft[parameterIndex]= LocalDate.of(2020,02,29);
+              argListRight[parameterIndex]= LocalDate.of(2020,02,29);
 			}
 			else if(parameters[parameterIndex].isAssignableFrom(LocalTime.class)){
               paramListLeft[parameterIndex] = LocalTime.class;
               paramListRight[parameterIndex] = LocalTime.class;
               
-              argListLeft[parameterIndex]= LocalTime.now();
-              argListRight[parameterIndex]= LocalTime.now();
+              argListLeft[parameterIndex]= LocalTime.of(23, 59, 59, 999999999);
+              argListRight[parameterIndex]= LocalTime.of(23, 59, 59, 999999999);
             }
+			else if(parameters[parameterIndex].isAssignableFrom(LocalDateTime.class)){
+              paramListLeft[parameterIndex] = LocalDateTime.class;
+              paramListRight[parameterIndex] = LocalDateTime.class;
+              
+              argListLeft[parameterIndex]= LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
+              argListRight[parameterIndex]= LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
+            }
+			else if(parameters[parameterIndex].isAssignableFrom(ZoneId.class)){
+              paramListLeft[parameterIndex] = ZoneId.class;
+              paramListRight[parameterIndex] = ZoneId.class;
+              
+              argListLeft[parameterIndex]= ZoneId.systemDefault();
+              argListRight[parameterIndex]= ZoneId.systemDefault();
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(ZoneOffset.class)){
+              paramListLeft[parameterIndex] = ZoneOffset.class;
+              paramListRight[parameterIndex] = ZoneOffset.class;
+              
+              argListLeft[parameterIndex]= ZoneOffset.ofHoursMinutesSeconds(17,59,59);
+              argListRight[parameterIndex]= ZoneOffset.ofHoursMinutesSeconds(17,59,59);
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(DateTimeFormatter.class)){
+              paramListLeft[parameterIndex] = DateTimeFormatter.class;
+              paramListRight[parameterIndex] = DateTimeFormatter.class;
+              
+              argListLeft[parameterIndex]= DateTimeFormatter.BASIC_ISO_DATE;
+              argListRight[parameterIndex]= DateTimeFormatter.BASIC_ISO_DATE;
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(Instant.class)){
+              paramListLeft[parameterIndex] = Instant.class;
+              paramListRight[parameterIndex] = Instant.class;
+              
+              argListLeft[parameterIndex]= Instant.ofEpochSecond(1, 999999999);
+              argListRight[parameterIndex]= Instant.ofEpochSecond(1, 999999999);
+			}
+			else if(parameters[parameterIndex].isAssignableFrom(ZonedDateTime.class)){
+              paramListLeft[parameterIndex] = ZonedDateTime.class;
+              paramListRight[parameterIndex] = ZonedDateTime.class;
+              
+              argListLeft[parameterIndex]= ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999,ZoneId.systemDefault());
+              argListRight[parameterIndex]= ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
+			}
 			else{
 				throw new AssertionError("Unsupported class: "+parameters[parameterIndex].getName()+" - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
 			}
