@@ -1,15 +1,15 @@
 package net.lonzak.examples.classes;
 
-public class Constructor {
+public class PrivateConstructor {
   
   private String a;
   private int b;
   private float c;
   
-  private Constructor() {
+  private PrivateConstructor() {
   }
   
-  private Constructor(String a, int b, float c) {
+  private PrivateConstructor(String a, int b, float c) {
     this.a=a;
     this.b=b;
     this.c=c;

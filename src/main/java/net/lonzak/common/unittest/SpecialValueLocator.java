@@ -24,43 +24,53 @@
  */
 package net.lonzak.common.unittest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class SpecialValueLocator {
   
-  private Map<Location, Object> specialValues;
+  private Map<ConstructorValue, ConstructorValue> specialValues;
   private int numberOfArgumentsConstructor=-1;
   
-  public static final SpecialValueLocator NONE = new SpecialValueLocator(new HashMap<Location, Object>());
+  public static final SpecialValueLocator NONE = new SpecialValueLocator(new ArrayList<ConstructorValue>());
  
   /**
    * Initializes the list of special values with one value.
-   * To add further values use the {@link #addSpecialValue(Location, Object)} or {@link #setSpecialValues(Map)} methods. 
+   * To add further values use the {@link #addSpecialValue(ConstructorValue, Object)} or {@link #setSpecialValues(Map)} methods. 
    * 
    * @param location of the special value 
    * @param specialValue the special value which should be used for the Constructor
    */
-  public SpecialValueLocator(Location location, Object specialValue) {
+  public SpecialValueLocator(ConstructorValue constructorValue) {
     this.specialValues= new HashMap<>();
-    this.specialValues.put(location, specialValue);
-    this.numberOfArgumentsConstructor=location.getNumberOfArguments();
+    this.specialValues.put(constructorValue, constructorValue);
+    this.numberOfArgumentsConstructor=constructorValue.getNumberOfArguments();
   }
   
   /**
    * Constructs a special value list to be able to set individual constructor arguments.
    * @param specialValues a list of special values
    */
-  public SpecialValueLocator(Map<Location, Object> specialValues) {
-    this.specialValues = specialValues;
+  public SpecialValueLocator(List<ConstructorValue> constructorValues) {
+    this.specialValues= new HashMap<>();
+    
+    for(ConstructorValue constructorValue : constructorValues) {
+      this.specialValues.put(constructorValue,constructorValue);
+    }
   }
   
-  public void addSpecialValue(Location location, Object specialValue){
-    this.specialValues.put(location, specialValue);
+  public void addSpecialValue(ConstructorValue constructorValue){
+    this.specialValues.put(constructorValue,constructorValue);
   }
   
-  public void setSpecialValues(Map<Location, Object> specialValues){
+  public void setSpecialValues(Map<ConstructorValue, ConstructorValue> specialValues){
     this.specialValues.putAll(specialValues);
+  }
+  
+  protected Map<ConstructorValue, ConstructorValue> getSpecialValues(){
+    return this.specialValues;
   }
 
   public int getNumberOfArgumentsConstructor() {
@@ -84,7 +94,7 @@ public final class SpecialValueLocator {
    * @param location the location of the special value which should be retrieved
    * @return the special object or null
    */
-  public Object getSpecialValue(Location location) {
+  public Object getSpecialValue(ConstructorValue location) {
     return this.specialValues.get(location);
   }
   
@@ -92,10 +102,12 @@ public final class SpecialValueLocator {
    * 
    * @param numberOfArguments of the special value to retrieve
    * @param parameterIndex of the special value to retrieve
+   * @param primitiveType type of the parameter
+   * 
    * @return the special object or null
    */
-  public Object getSpecialValue(int numberOfArguments, int parameterIndex){
-    return this.specialValues.get(new Location(numberOfArguments,parameterIndex));
+  public Object getSpecialValue(int numberOfArguments, int parameterIndex, Class<?> dataType){
+    return this.specialValues.get(new ConstructorValue(numberOfArguments,parameterIndex,null,dataType));
   }
   
   /**
@@ -105,9 +117,28 @@ public final class SpecialValueLocator {
    * @param parameterIndex of the special value to retrieve
    * @return the special object or null
    */
-  public Object getSpecialValue(int parameterIndex){
+  public Object getSpecialValue(int parameterIndex,  Class<?> dataType){
     if(this.numberOfArgumentsConstructor!=-1){
-      return this.specialValues.get(new Location(this.numberOfArgumentsConstructor,parameterIndex));
+      ConstructorValue specialValue = this.specialValues.get(new ConstructorValue(this.numberOfArgumentsConstructor,parameterIndex,null,dataType));
+      return specialValue==null ? null : specialValue.getValue();
+    }
+    else{
+      if(this.specialValues.isEmpty()) {
+        return null;
+      }
+      throw new IllegalStateException("The current constructor index has not been set!");
+    }
+  }
+  
+  /**
+   * 
+   * @param parameterIndex
+   * @return the data type or null
+   */
+  public Class<?> getDataType(int parameterIndex, Class<?> dataType){
+    if(this.numberOfArgumentsConstructor!=-1){
+      ConstructorValue value = this.specialValues.get(new ConstructorValue(this.numberOfArgumentsConstructor,parameterIndex,null,dataType));
+      return value==null ? null : value.getDataType();
     }
     else{
       if(this.specialValues.isEmpty()) {
@@ -139,10 +170,12 @@ public final class SpecialValueLocator {
    * @author 225010
    *
    */
-  public static final class Location{
+  public static final class ConstructorValue{
     
     private int numberOfArguments=-1;
     private int parameterIndex=-1;
+    private Object value;
+    private Class<?> dataType;
     
     /**
      * The location identifies which parameter of which constructor to set.
@@ -150,31 +183,192 @@ public final class SpecialValueLocator {
      * A constructor can be identified by the number of arguments it has.
      * <p>
      * - The argument is defined by its index e.g. the 3rd parameter should be set so its index is 3.<p>
-     * - The location is '1' based. Meaning that the first attribute of a 1 argument constructor is 1,1.<p>
+     * - The index is '1' based. Meaning that the first attribute of a 1 argument constructor is 1,1.<p>
      * - If only a default constructor exists and a special set Object should be set then use (0,1) 
      * 
      * @param numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex the index of the parameter of that constructor
+     * @param value the special value to set
+     * @param dataType of the special value
+     * 
      */
-    public Location(int numberOfArguments, int parameterIndex){
+    public ConstructorValue(int numberOfArguments, int parameterIndex, Object value, Class<?> dataType){
+      if(numberOfArguments!=0 && numberOfArguments<parameterIndex) throw new IllegalArgumentException("The number of arguments ("+numberOfArguments+") can not be smaller than the parameter index ("+parameterIndex+")!");
+      if(numberOfArguments<0 || parameterIndex <1) throw new IllegalArgumentException("Illegal value for number of constructor arguments ("+numberOfArguments+") or the parameter index("+parameterIndex+")!");
+      this.numberOfArguments=numberOfArguments;
+      this.parameterIndex=parameterIndex;
+      this.value=value;
+      this.dataType=dataType;
+    }
+    
+    /**
+     * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
+     * 
+     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * 
+     * @param numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex the index of the parameter of that constructor
+     * @param special object value
+     */
+    public ConstructorValue(int numberOfArguments, int parameterIndex, Object value){
+      this(numberOfArguments,parameterIndex,value,value.getClass());
+    }
+    
+    /**
+     * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
+     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * 
+     * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex parameterIndex the index of the parameter of that constructor
+     * @param value primitive int parameter
+     */
+    public ConstructorValue(int numberOfArguments, int parameterIndex, int value){
+      this(numberOfArguments,parameterIndex,value,int.class);
+    }
+    
+    /**
+     * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
+     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * 
+     * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex parameterIndex the index of the parameter of that constructor
+     * @param value primitive long parameter
+     */
+    public ConstructorValue(int numberOfArguments, int parameterIndex, long value){
+      this(numberOfArguments,parameterIndex,value,long.class);
+    }
+
+    /**
+     * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
+     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * 
+     * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex parameterIndex the index of the parameter of that constructor
+     * @param value primitive float parameter
+     */
+    public ConstructorValue(int numberOfArguments, int parameterIndex, float value){
+      this(numberOfArguments,parameterIndex,value,float.class);
+    }
+
+    /**
+     * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
+     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * 
+     * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex parameterIndex the index of the parameter of that constructor
+     * @param value primitive double parameter
+     */
+    public ConstructorValue(int numberOfArguments, int parameterIndex, double value){
+      this(numberOfArguments,parameterIndex,value,double.class);
+    }
+
+    /**
+     * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
+     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * 
+     * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex parameterIndex the index of the parameter of that constructor
+     * @param value primitive short parameter
+     */
+    public ConstructorValue(int numberOfArguments, int parameterIndex, short value){
+      this(numberOfArguments,parameterIndex,value,short.class);
+    }
+
+    /**
+     * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
+     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * 
+     * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex parameterIndex the index of the parameter of that constructor
+     * @param value primitive char parameter
+     */
+    public ConstructorValue(int numberOfArguments, int parameterIndex, char value){
+      this(numberOfArguments,parameterIndex,value,char.class);
+    }
+    
+    /**
+     * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
+     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * 
+     * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex parameterIndex the index of the parameter of that constructor
+     * @param value primitive byte parameter
+     */
+    public ConstructorValue(int numberOfArguments, int parameterIndex, byte value){
+      this(numberOfArguments,parameterIndex,value,byte.class);
+    }
+
+    /**
+     * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
+     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * 
+     * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex parameterIndex the index of the parameter of that constructor
+     * @param value primitive boolean parameter
+     */
+    public ConstructorValue(int numberOfArguments, int parameterIndex, boolean value){
+      this(numberOfArguments,parameterIndex,value,boolean.class);
+    }
+
+    
+    /**
+     * Internal Constructor to be able to locate a special value
+     * @param numberOfArguments
+     * @param parameterIndex
+     */
+    protected ConstructorValue(int numberOfArguments, int parameterIndex){
+      if(numberOfArguments!=0 && numberOfArguments<parameterIndex) throw new IllegalArgumentException("The number of arguments ("+numberOfArguments+") can not be smaller than the parameter index ("+parameterIndex+")!");
+      if(numberOfArguments<0 || parameterIndex <1) throw new IllegalArgumentException("Illegal value for number of constructor arguments ("+numberOfArguments+") or the parameter index("+parameterIndex+")!");
       this.numberOfArguments=numberOfArguments;
       this.parameterIndex=parameterIndex;
     }
 
+    /**
+     * Returns which constructor should be used. A constructor can be identified by its number of arguments.
+     * @return number of arguments of a constructor
+     */
     public final int getNumberOfArguments() {
       return this.numberOfArguments;
     }
    
+    /**
+     * Returns the index of the parameter. Meaning at which position the parameter is located. 
+     * @return the parameter index
+     */
     public final int getParameterIndex() {
       return this.parameterIndex;
     }
     
+    /**
+     * Returns the data type of the special value. This is necessary since primitive types are autoboxed.
+     * @return the data type class of the special value
+     */
+    public final Class<?> getDataType() {
+      return this.dataType;
+    }
+    
+    public Object getValue() {
+      return this.value;
+    }
+
+    /**
+     * Compares whether a Location has the same coordinates (numberOfArguments and parameterIndex)
+     * 
+     * @param location
+     * 
+     * @return true if the coordinates match otherwise false
+     */
+    public boolean compareCoordinates(ConstructorValue location) {
+      return this.numberOfArguments==location.getNumberOfArguments() && this.parameterIndex==location.getParameterIndex();
+    }
+
     @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + this.numberOfArguments;
-      result = prime * result + this.parameterIndex;
+      result = prime * result + ((dataType == null) ? 0 : dataType.hashCode());
+      result = prime * result + numberOfArguments;
+      result = prime * result + parameterIndex;
       return result;
     }
 
@@ -186,15 +380,22 @@ public final class SpecialValueLocator {
         return false;
       if (getClass() != obj.getClass())
         return false;
-      Location other = (Location) obj;
-      if (this.numberOfArguments != other.numberOfArguments)
+      ConstructorValue other = (ConstructorValue) obj;
+      if (dataType == null) {
+        if (other.dataType != null)
+          return false;
+      } else if (!dataType.equals(other.dataType))
         return false;
-      return (this.parameterIndex == other.parameterIndex);
+      if (numberOfArguments != other.numberOfArguments)
+        return false;
+      if (parameterIndex != other.parameterIndex)
+        return false;
+      return true;
     }
 
     @Override
     public String toString() {
-      return "Location [numberOfArguments=" + this.numberOfArguments + ", parameterIndex=" + this.parameterIndex + "]";
+      return "Location [numberOfArguments=" + this.numberOfArguments + ", parameterIndex=" + this.parameterIndex + ", value: "+this.value+", data type: "+this.dataType+"]";
     }
   } 
 }

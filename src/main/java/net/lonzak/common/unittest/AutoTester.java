@@ -97,6 +97,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
+import net.lonzak.common.unittest.SpecialValueLocator.ConstructorValue;
 
 /**
  * Class which automatically tests DTO / Entity style classes.<p>
@@ -173,17 +174,20 @@ public final class AutoTester {
 		if(specialValues==null) specialValues = SpecialValueLocator.NONE;
 			  
 		//abstract classes or interfaces can not be instantiated
-		if(Modifier.isAbstract(dtoClass.getModifiers())) throw new AssertionError(dtoClass.getSimpleName()+" is an abstract class or an interface and can thus not be instantiated. Use on of its subclasses instead!");
+		if(Modifier.isAbstract(dtoClass.getModifiers())) throw new IllegalArgumentException(dtoClass.getSimpleName()+" is an abstract class or an interface and can thus not be instantiated. Use on of its subclasses instead!");
 		
 		//check whether equals and hashCode was overwritten
 		boolean equalsExists = classImplementsEquals(dtoClass);
 		boolean hashCodeExists = classImlementsHashCode(dtoClass);
 		
 		if(equalsExists == !hashCodeExists){
-			throw new AssertionError(dtoClass.getSimpleName()+" implements only one method: equals(Object o) or hashCode(). This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
+			throw new PotentialErrorDetected(dtoClass.getSimpleName()+" implements only one method: equals(Object o) or hashCode(). This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
 		}
 		
 		try{
+		    //verify special values (match against available constructors)
+	        specialValuesValid(dtoClass.getConstructors(),specialValues);
+		  
 		    //create all constructors and check equals
 			HashMap<Object, Object> constructors = createObjects(new ArrayList<Class<?>>(), dtoClass, implOfAbstractClasses, specialValues,true);
 			//create all set methods and call them for each constructor
@@ -194,19 +198,19 @@ public final class AutoTester {
 			checkToString(dtoClass, constructors);
 		}
 		catch (IllegalArgumentException iae) {
-			throw new RuntimeException("An IllegalArgumentException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+iae.getMessage()+")",iae);		
+			throw new PotentialErrorDetected("An IllegalArgumentException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+iae.getMessage()+")",iae);		
 		}
 		catch (ClassNotFoundException cnfe) {
-			throw new RuntimeException("An ClassNotFoundException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+cnfe.getMessage()+")",cnfe);
+			throw new PotentialErrorDetected("An ClassNotFoundException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+cnfe.getMessage()+")",cnfe);
 		}
 		catch (InstantiationException ie) {
-			throw new RuntimeException("An InstantiationException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+ie.getMessage()+")",ie);
+			throw new PotentialErrorDetected("An InstantiationException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+ie.getMessage()+")",ie);
 		}
 		catch (IllegalAccessException iae) {
-			throw new RuntimeException("An IllegalAccessException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+iae.getMessage()+")",iae);
+			throw new PotentialErrorDetected("An IllegalAccessException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+iae.getMessage()+")",iae);
 		}
 		catch (InvocationTargetException ite) {
-			throw new RuntimeException("An InvocationTargetException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+ite.getMessage()+")",ite);
+			throw new PotentialErrorDetected("An InvocationTargetException occured. There are several possible reasons: \n 1. The class can not be automatically tested \n 2. There is an error in the AutoTester (please inform the unittest-utilities project) \n 3. There is an error in your implementation of the DTO class (e.g. faulty equals/hashCode Implementation ...) \n => Please exclude the class '"+dtoClass.getName()+"' from automatic testing (for now) and see stacktrace for details ("+ite.getMessage()+")",ite);
 		}
 	}
 	
@@ -249,10 +253,10 @@ public final class AutoTester {
             return createObjects(new ArrayList<Class<?>>(), classToTest, null, SpecialValueLocator.NONE, true);
           }
           catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
+            throw new PotentialErrorDetected("Error testing private constructor: "+e.getMessage(),e);
           }
         }
-        throw new RuntimeException("No private constructor found.");
+        throw new PotentialErrorDetected("No private constructor found.");
     }    
     
     /**
@@ -315,20 +319,8 @@ public final class AutoTester {
             method.setAccessible(true);
             return method.invoke(classToTest,parameterValues);
         }
-        catch (InvocationTargetException ite) {
-            throw new RuntimeException(ite);
-        }
-        catch (SecurityException se) {
-            throw new AssertionError(se);
-        }
-        catch (NoSuchMethodException nsme) {
-            throw new AssertionError(nsme);
-        }
-        catch (IllegalArgumentException iae) {
-            throw new AssertionError(iae);
-        }
-        catch (IllegalAccessException iae) {
-            throw new AssertionError(iae);
+        catch (InvocationTargetException | SecurityException | NoSuchMethodException | IllegalArgumentException | IllegalAccessException e) {
+            throw new InternalException(e);
         }
     }    
 
@@ -395,7 +387,7 @@ public final class AutoTester {
 			}
 				
 			if(implementationClass==null){
-				throw new AssertionError("No implementation found for abstract class '"+dtoClass.getName()+"'. Please use the testClass(Class<?>, List implementationsOfAbstractClasses) method and supply a suitable implementation.");
+				throw new IllegalArgumentException("No implementation found for abstract class '"+dtoClass.getName()+"'. Please use the testClass(Class<?>, List implementationsOfAbstractClasses) method and supply a suitable implementation.");
 			}
 			
 			//overwrite DTO class
@@ -404,7 +396,7 @@ public final class AutoTester {
 
 		//only public constructors are relevant
 		List<Constructor<?>> constructors =  new ArrayList<>(Arrays.asList(dtoClass.getConstructors()));
-
+		
 		//check for constructors which are instantiated with the same class -> results in infinite loop
 		ArrayList<Constructor<?>> toBeRemoved = new ArrayList<>();
 		for (Constructor<?> constructor : constructors) {
@@ -437,15 +429,18 @@ public final class AutoTester {
 		}
 		catch(InvocationTargetException ite){
 			if(ite.getCause() instanceof NumberFormatException || ite.getTargetException() instanceof IllegalArgumentException){
-				throw new InvocationTargetException(ite.getTargetException(),"It seems that the constructor of the class needs a special format. Try to use the special value mechanism!");
+				throw new PotentialErrorDetected("It seems that the constructor of the class needs a special format. Try to use the special value mechanism!",ite.getTargetException());
 			}
 			if(ite.getTargetException() instanceof NullPointerException){
-			  throw new InvocationTargetException(ite.getTargetException(),"There seems to be a problem while creating the object.");
+			  throw new PotentialErrorDetected("There is a problem creating the object.",ite.getTargetException());
 			}
 			else{
 				throw ite;
 			}
 		}
+        catch(NullPointerException npe) {
+          throw new PotentialErrorDetected("Problem detected in: "+dtoClass.getName()+". Check all get/set methods (and hashCode() and equals()) - there is a potential Nullpointer in that class.",npe);
+        }
 		return returnObjects;
 	}
 	
@@ -469,10 +464,10 @@ public final class AutoTester {
 		}
 		catch(InvocationTargetException ite){
 			if(ite.getCause() instanceof NumberFormatException){
-			  throw new InvocationTargetException(ite, "It seems that the class needs a special format. Try to use the special value mechanism!");
+			  throw new IllegalArgumentException("It seems that the class needs a special format. Try to use the special value mechanism!",ite);
 			}
 			if(ite.getTargetException() instanceof NullPointerException){
-              throw new InvocationTargetException(ite.getTargetException(), "The check equals() or hashCode() seems to have a problem. Check the implementation!");
+              throw new PotentialErrorDetected("The check equals() or hashCode() seems to have a problem. Check the implementation!", ite.getTargetException());
             }
 			else{
 				throw ite;
@@ -518,10 +513,10 @@ public final class AutoTester {
 		}
 		catch(InvocationTargetException ite){
 			if(ite.getCause() instanceof NumberFormatException){
-			  throw new InvocationTargetException(ite, "It seems that the class needs a special format. Try to use the special value mechanism!");
+			  throw new IllegalArgumentException("It seems that the class needs a special format. Try to use the special value mechanism!",ite);
 			}
 			if(ite.getTargetException() instanceof NullPointerException){
-              throw new InvocationTargetException(ite.getTargetException(), "There seems to be a problem with a getter or setter method. Check your implementation.");
+              throw new PotentialErrorDetected("There seems to be a problem with a getter or setter method. Check your implementation.", ite.getTargetException());
             }
 			else{
 				throw ite;
@@ -573,7 +568,7 @@ public final class AutoTester {
 						  executeEquals(returnLeft,returnRight,false);
 						}
 						catch(AssertionError ae){
-						  throw new AssertionError("Two identical objects should have the same toString() method result. The reason for that are usually object addresses (SomeObject@383534aa...) of attributes which don't overwrite toString(). For debugging and clean error logs this should be avoided!", ae);
+						  throw new PotentialErrorDetected("Two identical objects should have the same toString() method result. The reason for that are usually object addresses (SomeObject@383534aa...) of attributes which don't overwrite toString(). For debugging and clean error logs this should be avoided!", ae);
 						}
 					}
 				}
@@ -585,7 +580,7 @@ public final class AutoTester {
 	  }
 	  catch(InvocationTargetException ite){
 	    if(ite.getTargetException() instanceof NullPointerException){
-	      throw new AssertionError("A NullpointerException occured which indicates that a bug was found in the 'toString()' method.",ite.getTargetException());
+	      throw new PotentialErrorDetected("A NullpointerException occured which indicates that a bug was found in the 'toString()' method.",ite.getTargetException());
 	    }
 	  }
 	}
@@ -610,16 +605,24 @@ public final class AutoTester {
       }
 	}
 	
+	/*
+	 * The following check verifies that a parameter type matches. The part after the || (OR) handles the special case that it is a primitive type which is lost due to autoboxing in a hashmap
+	 * if(... constructorParameterType.isAssignableFrom(clazz.getClass()) || (... constructorParameterType.isAssignableFrom(primitive.class)))
+	 */
 	private static void fillPrimitiveType(Class<?>[] parameters, Class<?>[] paramListLeft, Object[] argListLeft, Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
-		//primitive types
-		if(parameters[parameterIndex].isAssignableFrom(byte.class)){
+		
+	    Class<?> constructorParameterType = parameters[parameterIndex];
+	    Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);	    
+	    Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+	  
+        //primitive types
+		if(constructorParameterType.isAssignableFrom(byte.class)){
 			paramListLeft[parameterIndex] = Byte.TYPE;
 			paramListRight[parameterIndex] = Byte.TYPE;
 			
 			Byte b;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              b =  (Byte)specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              b =  (Byte)clazz;
             }
             else{
               b = getRandomByte();
@@ -628,14 +631,13 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= b;
 			argListRight[parameterIndex]= b;
 		}
-		else if(parameters[parameterIndex].isAssignableFrom(short.class)){
+		else if(constructorParameterType.isAssignableFrom(short.class)){
 			paramListLeft[parameterIndex] = Short.TYPE;
 			paramListRight[parameterIndex] = Short.TYPE;
 			
 			Short s;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-			  s =  (Short)specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+			  s =  (Short)clazz;
 			}
 			else{
 			  s = getRandomShort();
@@ -643,18 +645,17 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= s;
 			argListRight[parameterIndex]= s;
 		}
-		else if(parameters[parameterIndex].isAssignableFrom(int.class)){
+		else if(constructorParameterType.isAssignableFrom(int.class)){
 			paramListLeft[parameterIndex] = Integer.TYPE;
 			paramListRight[parameterIndex] = Integer.TYPE;
 			
 			Integer in;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-			  in = (Integer)specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+			  in = (Integer)clazz;
 			}
             //this is a special case for setting a random scale for a bigDecimal e.g.(1906457549,-619243059): 
             //a negative scale of such a big int would take too long to calculate
-            //TODO: there should be another way (special value mechanism?) However how to point the user the the exact problem? 
+            //TODO 225010 there should be another way (special value mechanism?) However how to point the user the the exact problem? 
             //In theory start a new thread which calculates the numbers and if it takes too long abort it...?
             //If this is happening another time then 
             else if(parameters.length>1 && parameterIndex>0 && argListLeft[parameterIndex-1] instanceof BigDecimal){
@@ -667,14 +668,13 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= in; 
 			argListRight[parameterIndex]= in;
 		}
-		else if(parameters[parameterIndex].isAssignableFrom(long.class)){
+		else if(constructorParameterType.isAssignableFrom(long.class)){
 			paramListLeft[parameterIndex] = Long.TYPE;
 			paramListRight[parameterIndex] = Long.TYPE;
 			
 			Long l;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              l = (Long)specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              l = (Long)clazz;
             }
             else{
               l = getRandomLong();
@@ -683,14 +683,13 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= l;
 			argListRight[parameterIndex]= l;
 		}
-		else if(parameters[parameterIndex].isAssignableFrom(float.class)){
+		else if(constructorParameterType.isAssignableFrom(float.class)){
 			paramListLeft[parameterIndex] = Float.TYPE;
 			paramListRight[parameterIndex] = Float.TYPE;
 
 			Float f;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              f = (Float)specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              f = (Float)clazz;
             }
             else{
               f = getRandomFloat();
@@ -699,14 +698,13 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= f;  
 			argListRight[parameterIndex]= f;
 		}
-		else if(parameters[parameterIndex].isAssignableFrom(double.class)){
+		else if(constructorParameterType.isAssignableFrom(double.class)){
 			paramListLeft[parameterIndex] = Double.TYPE;
 			paramListRight[parameterIndex] = Double.TYPE;
 			
 			Double d;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              d = (Double)specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              d = (Double)clazz;
             }
             else{
               d = getRandomDouble();
@@ -715,30 +713,28 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= d;
 			argListRight[parameterIndex]= d;
 		}
-		else if(parameters[parameterIndex].isAssignableFrom(boolean.class)){
+		else if(constructorParameterType.isAssignableFrom(boolean.class)){
 			paramListLeft[parameterIndex] = Boolean.TYPE;
 			paramListRight[parameterIndex] = Boolean.TYPE;
 			
 			Boolean b;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              b = (Boolean)specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              b = (Boolean)clazz;
             }
             else{
               b = getRandomBoolean();
             }
-			
+            
 			argListLeft[parameterIndex]= b;
 			argListRight[parameterIndex]= b;
 		}
-		else if(parameters[parameterIndex].isAssignableFrom(char.class)){
+		else if(constructorParameterType.isAssignableFrom(char.class)){
 			paramListLeft[parameterIndex] = Character.TYPE;
 			paramListRight[parameterIndex] = Character.TYPE;
 			
 			Character c;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              c = (Character)specialValues.getSpecialValue(parameterIndex+1);
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              c = (Character)clazz;
             }
             else{
               c = getRandomCharacter();
@@ -748,7 +744,7 @@ public final class AutoTester {
 			argListRight[parameterIndex]= c;
 		}
 		else{
-			throw new AssertionError("Unknown primitive java type: "+parameters[parameterIndex].getName());
+			throw new InternalException("Unknown primitive java type: "+constructorParameterType.getName());
 		}
 	}
 	
@@ -764,16 +760,18 @@ public final class AutoTester {
 	 * @return true if the data type could be filled otherwise false
 	 */
 	private static boolean fillJavaLangType(Class<?>[] parameters, Class<?>[] paramListLeft, Object[] argListLeft,Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
-		
+	    Class<?> constructorParameterType = parameters[parameterIndex];
+        Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+
 		//check String
-	    if(parameters[parameterIndex].isAssignableFrom(String.class)){
+	    if(constructorParameterType.isAssignableFrom(String.class)){
 			paramListLeft[parameterIndex] = String.class;
 			paramListRight[parameterIndex] = String.class;
 			
 			String s;
-			Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-			if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-			  s = (String)specialValues.getSpecialValue(parameterIndex+1);
+			if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+			  s = (String)clazz;
 			}
 			else{
 			  s = getRandomString();
@@ -782,14 +780,13 @@ public final class AutoTester {
 			argListRight[parameterIndex]= s;
 		}
 		//objects of primitive types
-	    else if(parameters[parameterIndex].isAssignableFrom(Byte.class)){
+	    else if(constructorParameterType.isAssignableFrom(Byte.class)){
 			paramListLeft[parameterIndex] = Byte.class;
 			paramListRight[parameterIndex] = Byte.class;
 			
 			Byte b;
-			Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-			if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              b = (Byte)specialValues.getSpecialValue(parameterIndex+1);
+			if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              b = (Byte)clazz;
             }
             else{
               b = getRandomByte();
@@ -798,14 +795,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= b;
 			argListRight[parameterIndex]= b;
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Short.class)){
+	    else if(constructorParameterType.isAssignableFrom(Short.class)){
 			paramListLeft[parameterIndex] = Short.class;
 			paramListRight[parameterIndex] = Short.class;
 			
 			Short s;
-			Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-			if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              s = (Short)specialValues.getSpecialValue(parameterIndex+1);
+			
+			if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              s = (Short)clazz;
             }
             else{
               s = getRandomShort();
@@ -814,14 +811,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= s;
 			argListRight[parameterIndex]= s;
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Integer.class)){
+	    else if(constructorParameterType.isAssignableFrom(Integer.class)){
 			paramListLeft[parameterIndex] = Integer.class;
 			paramListRight[parameterIndex] = Integer.class;
 			
 			Integer in;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              in = (Integer)specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              in = (Integer)clazz;
             }
             else{
               in = getRandomInteger();
@@ -830,14 +827,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= in; 
 			argListRight[parameterIndex]= in;
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Long.class)){
+	    else if(constructorParameterType.isAssignableFrom(Long.class)){
 			paramListLeft[parameterIndex] = Long.class;
 			paramListRight[parameterIndex] = Long.class;
 			
 			Long l;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              l = (Long)specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              l = (Long)clazz;
             }
             else{
               l = getRandomLongAsObject();
@@ -846,14 +843,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= l;
 			argListRight[parameterIndex]= l;
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Float.class)){
+	    else if(constructorParameterType.isAssignableFrom(Float.class)){
 			paramListLeft[parameterIndex] = Float.class;
 			paramListRight[parameterIndex] = Float.class;
 			
 			Float f;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              f = (Float)specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              f = (Float)clazz;
             }
             else{
               f = getRandomFloatAsObject();
@@ -861,14 +858,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= f;  
 			argListRight[parameterIndex]= f;
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Double.class)){
+	    else if(constructorParameterType.isAssignableFrom(Double.class)){
 			paramListLeft[parameterIndex] = Double.class;
 			paramListRight[parameterIndex] = Double.class;
 			
 			Double d;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              d = (Double)specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              d = (Double)clazz;
             }
             else{
               d = getRandomDoubleAsObject();
@@ -876,14 +873,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= d;
 			argListRight[parameterIndex]= d;
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Boolean.class)){
+	    else if(constructorParameterType.isAssignableFrom(Boolean.class)){
 			paramListLeft[parameterIndex] = Boolean.class;
 			paramListRight[parameterIndex] = Boolean.class;
 			
 			Boolean b;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              b = (Boolean)specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              b = (Boolean)clazz;
             }
             else{
               b = getRandomBoolean();
@@ -891,14 +888,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= b;
 			argListRight[parameterIndex]= b;
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Character.class)){
+	    else if(constructorParameterType.isAssignableFrom(Character.class)){
 			paramListLeft[parameterIndex] = Character.class;
 			paramListRight[parameterIndex] = Character.class;
 			
 			Character c;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              c = (Character)specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              c = (Character)clazz;
             }
             else{
               c = getRandomCharacter();
@@ -913,16 +910,19 @@ public final class AutoTester {
 	}
 	
 	private static void fillArray(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
-	  
+        Class<?> constructorParameterType = parameters[parameterIndex];
+        Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+      
 		//primitive Arrays 
-	   if(parameters[parameterIndex].isAssignableFrom(int[].class)){
+	   if(constructorParameterType.isAssignableFrom(int[].class)){
 			paramListLeft[parameterIndex] = int[].class;
 			paramListRight[parameterIndex] = int[].class;
 			
 			int [] in;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              in = (int[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              in = (int[])clazz;
             }
             else{
               in = getRandomIntArrayPrimitive();
@@ -931,14 +931,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= in;
 			argListRight[parameterIndex]= in.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(long[].class)){
+	    else if(constructorParameterType.isAssignableFrom(long[].class)){
 			paramListLeft[parameterIndex] = long[].class;
 			paramListRight[parameterIndex] = long[].class;
 			
 			long [] l;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              l = (long[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              l = (long[])clazz;
             }
             else{
               l = getRandomLongArrayPrimitive();
@@ -947,14 +947,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= l;
 			argListRight[parameterIndex]= l.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(float[].class)){
+	    else if(constructorParameterType.isAssignableFrom(float[].class)){
 			paramListLeft[parameterIndex] = float[].class;
 			paramListRight[parameterIndex] = float[].class;
 			
 			float [] f;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              f = (float[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              f = (float[])clazz;
             }
             else{
               f = getRandomFloatArrayPrimitive();
@@ -963,15 +963,15 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= f;
 			argListRight[parameterIndex]= f.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(double[].class)){
+	    else if(constructorParameterType.isAssignableFrom(double[].class)){
 			paramListLeft[parameterIndex] = double[].class;
 			paramListRight[parameterIndex] = double[].class;
 			
 			double [] d;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
 
-              d = (double[])specialValues.getSpecialValue(parameterIndex+1);
+              d = (double[])clazz;
             }
             else{
               d = getRandomDoubleArrayPrimitive();
@@ -980,14 +980,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= d;
 			argListRight[parameterIndex]= d.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(boolean[].class)){
+	    else if(constructorParameterType.isAssignableFrom(boolean[].class)){
 			paramListLeft[parameterIndex] = boolean[].class;
 			paramListRight[parameterIndex] = boolean[].class;
 			
 			boolean [] b;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              b = (boolean[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              b = (boolean[])clazz;
             }
             else{
               b = getRandomBooleanArrayPrimitive();
@@ -996,14 +996,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= b;
 			argListRight[parameterIndex]= b.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(byte[].class)){
+	    else if(constructorParameterType.isAssignableFrom(byte[].class)){
 			paramListLeft[parameterIndex] = byte[].class;
 			paramListRight[parameterIndex] = byte[].class;
 			
 			byte [] b;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              b = (byte[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              b = (byte[])clazz;
             }
             else{
               b = getRandomByteArrayPrimitive();
@@ -1011,14 +1011,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= b;
 			argListRight[parameterIndex]= b.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(short[].class)){
+	    else if(constructorParameterType.isAssignableFrom(short[].class)){
 			paramListLeft[parameterIndex] = short[].class;
 			paramListRight[parameterIndex] = short[].class;
 			
 			short [] s;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              s = (short[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              s = (short[])clazz;
             }
             else{
               s = getRandomShortArrayPrimitive();
@@ -1027,14 +1027,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= s;
 			argListRight[parameterIndex]= s.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(char[].class)){
+	    else if(constructorParameterType.isAssignableFrom(char[].class)){
 			paramListLeft[parameterIndex] = char[].class;
 			paramListRight[parameterIndex] = char[].class;
 			
 			char [] c;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              c= (char[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              c= (char[])clazz;
             }
             else{
               c = getRandomCharArrayPrimitive();
@@ -1044,14 +1044,14 @@ public final class AutoTester {
 		}
 		
 		//object Arrays 
-	    else if(parameters[parameterIndex].isAssignableFrom(Integer[].class)){
+	    else if(constructorParameterType.isAssignableFrom(Integer[].class)){
 			paramListLeft[parameterIndex] = Integer[].class;
 			paramListRight[parameterIndex] = Integer[].class;
 			
 			Integer [] in;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              in= (Integer[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              in= (Integer[])clazz;
             }
             else{
               in = getRandomIntegerArray();
@@ -1059,14 +1059,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= in;
 			argListRight[parameterIndex]= in.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Long[].class)){
+	    else if(constructorParameterType.isAssignableFrom(Long[].class)){
 			paramListLeft[parameterIndex] = Long[].class;
 			paramListRight[parameterIndex] = Long[].class;
 			
 			Long [] l;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              l= (Long[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              l= (Long[])clazz;
             }
             else{
               l = getRandomLongArray();
@@ -1074,14 +1074,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= l;
 			argListRight[parameterIndex]= l.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Float[].class)){
+	    else if(constructorParameterType.isAssignableFrom(Float[].class)){
 			paramListLeft[parameterIndex] = Float[].class;
 			paramListRight[parameterIndex] = Float[].class;
 			
 			Float [] f;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              f= (Float[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              f= (Float[])clazz;
             }
             else{
               f = getRandomFloatArray();
@@ -1089,14 +1089,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= f;
 			argListRight[parameterIndex]= f.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Double[].class)){
+	    else if(constructorParameterType.isAssignableFrom(Double[].class)){
 			paramListLeft[parameterIndex] = Double[].class;
 			paramListRight[parameterIndex] = Double[].class;
 			
 			Double [] d;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              d= (Double[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              d= (Double[])clazz;
             }
             else{
               d = getRandomDoubleArray();
@@ -1104,14 +1104,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= d;
 			argListRight[parameterIndex]= d.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Boolean[].class)){
+	    else if(constructorParameterType.isAssignableFrom(Boolean[].class)){
 			paramListLeft[parameterIndex] = Boolean[].class;
 			paramListRight[parameterIndex] = Boolean[].class;
 			
 			Boolean [] b;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              b = (Boolean[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              b = (Boolean[])clazz;
             }
             else{
               b = getRandomBooleanArray();
@@ -1119,14 +1119,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= b;
 			argListRight[parameterIndex]= b.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Byte[].class)){
+	    else if(constructorParameterType.isAssignableFrom(Byte[].class)){
 			paramListLeft[parameterIndex] = Byte[].class;
 			paramListRight[parameterIndex] = Byte[].class;
 			
 			Byte [] b;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              b = (Byte[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              b = (Byte[])clazz;
             }
             else{
               b = getRandomByteArray();
@@ -1134,14 +1134,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= b;
 			argListRight[parameterIndex]= b.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Short[].class)){
+	    else if(constructorParameterType.isAssignableFrom(Short[].class)){
 			paramListLeft[parameterIndex] = Short[].class;
 			paramListRight[parameterIndex] = Short[].class;
 			
 			Short [] s;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              s = (Short[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              s = (Short[])clazz;
             }
             else{
               s = getRandomShortArray();
@@ -1149,14 +1149,14 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= s;
 			argListRight[parameterIndex]= s.clone();
 		}
-	    else if(parameters[parameterIndex].isAssignableFrom(Character[].class)){
+	    else if(constructorParameterType.isAssignableFrom(Character[].class)){
 			paramListLeft[parameterIndex] = Character[].class;
 			paramListRight[parameterIndex] = Character[].class;
 			
 			Character [] c;
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-              c = (Character[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+              c = (Character[])clazz;
             }
             else{
               c = getRandomCharacterArray();
@@ -1164,28 +1164,28 @@ public final class AutoTester {
 			argListLeft[parameterIndex]= c;
 			argListRight[parameterIndex]= c.clone();
 		}
-		else if(parameters[parameterIndex].getName().startsWith("[[")){
-			throw new AssertionError("Multidimensional Arrays are not supported yet:"+parameters[parameterIndex].getName());
+		else if(constructorParameterType.getName().startsWith("[[")){
+			throw new InternalException("Multidimensional Arrays are not supported yet:"+constructorParameterType.getName());
 		}
 		else{
 			//object array
-			paramListLeft[parameterIndex] = Class.forName(parameters[parameterIndex].getName());
-			paramListRight[parameterIndex] = Class.forName(parameters[parameterIndex].getName());
+			paramListLeft[parameterIndex] = constructorParameterType;
+			paramListRight[parameterIndex] = constructorParameterType;
 			
 			//detect object type
 			Class<?> arrayType = ((Class<?>)types[parameterIndex]).getComponentType();
 
 			//create objects for the array
-			HashMap<Object, Object> map = createObjects(constructedObjects, Class.forName(arrayType.getName()), implOfAbstractClasses, specialValues, false);
+			HashMap<Object, Object> map = createObjects(constructedObjects, arrayType, implOfAbstractClasses, specialValues, false);
 			Iterator<Entry<Object,Object>> entries = map.entrySet().iterator();
 			
 			Object[] leftList;
 			Object[] rightList;
 			
-            Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-            if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-			  leftList = (Object[])specialValues.getSpecialValue(parameterIndex+1);
-			  rightList = (Object[])specialValues.getSpecialValue(parameterIndex+1);
+            
+            if(clazz !=null && constructorParameterType.isAssignableFrom(clazz.getClass())){
+			  leftList = (Object[])clazz;
+			  rightList = (Object[])clazz;
             }
             else{
               leftList = (Object[])Array.newInstance(arrayType,map.size());
@@ -1205,8 +1205,8 @@ public final class AutoTester {
 	
 	private static void fillEnum(Class<?>[] parameters, Class<?>[] paramListLeft, Object[] argListLeft, Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues) throws ClassNotFoundException{
 		//Enums can not be instantiated
-		Class<?> object = Class.forName(parameters[parameterIndex].getName());
-		Object[] objects = object.getEnumConstants();
+	    Class<?> constructorParameterType = parameters[parameterIndex];
+		Object[] objects = constructorParameterType.getEnumConstants();
 		
 		if(objects.length>0){
   		//randomly select value
@@ -1214,11 +1214,13 @@ public final class AutoTester {
   		
           paramListLeft[parameterIndex] = objects[enumValue].getClass();
           paramListRight[parameterIndex] = objects[enumValue].getClass();
-  		
-          Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-          if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-            argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
-            argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+          
+          Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+          Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+          
+          if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+            argListLeft[parameterIndex]= clazz;
+            argListRight[parameterIndex]= clazz;
           }
           else{
             argListLeft[parameterIndex]= objects[enumValue];
@@ -1226,48 +1228,49 @@ public final class AutoTester {
           }
 		}
 		else{
-		  throw new IllegalArgumentException(object.getCanonicalName()+" is an empty enum and can thus not be tested. Add a value or exclude it from the tests.");
+		  throw new IllegalArgumentException(constructorParameterType.getCanonicalName()+" is an empty enum and can thus not be tested. Add a value or exclude it from the tests.");
 		}
 	}
 
 	private static void fillCollections(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		
-		Class<?> parameter = parameters[parameterIndex];
+	    Class<?> constructorParameterType = parameters[parameterIndex];
+        Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
 		
-		paramListLeft[parameterIndex] = Class.forName(parameter.getName());
-		paramListRight[parameterIndex] = Class.forName(parameter.getName());
+		paramListLeft[parameterIndex] = constructorParameterType;
+		paramListRight[parameterIndex] = constructorParameterType;
 
-        Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-        if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-          argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
-          argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+        if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+          argListLeft[parameterIndex]= clazz;
+          argListRight[parameterIndex]= clazz;
 		}
 		else{
 		  
 	        Collection<Object> leftList;
 	        Collection<Object> rightList;
     		//concrete Collection class will be instantiated
-    		if(!parameter.isInterface()){
+    		if(!constructorParameterType.isInterface()){
     			leftList = (Collection<Object>)paramListLeft[parameterIndex].newInstance();
     			rightList = (Collection<Object>)paramListRight[parameterIndex].newInstance();
     		}
-    		else if(parameter.isAssignableFrom(List.class)){
+    		else if(constructorParameterType.isAssignableFrom(List.class)){
     			//default implementation for List = ArrayList
     			leftList = new ArrayList<>();
     			rightList = new ArrayList<>();
     		}
-    		else if(parameter.isAssignableFrom(Set.class)){
+    		else if(constructorParameterType.isAssignableFrom(Set.class)){
     			//default implementation for List = HashSet
     			leftList = new HashSet<>();
     			rightList = new HashSet<>();
     		}
-    		else if(parameter.isAssignableFrom(Queue.class)){
+    		else if(constructorParameterType.isAssignableFrom(Queue.class)){
     			//default implementation for List = PriorityQueue
     			leftList = new PriorityQueue<>();
     			rightList = new PriorityQueue<>();
     		}
     		else{
-    			throw new AssertionError("Unsupported Collection type:"+parameter.getName());
+    			throw new IllegalArgumentException("Unsupported Collection type:"+constructorParameterType.getName());
     		}
     				
     		ParameterizedType type = (ParameterizedType) types[parameterIndex];
@@ -1275,14 +1278,14 @@ public final class AutoTester {
     		Class<?> type2 = (Class<?>)type.getActualTypeArguments()[0];
     		
     		//create objects for the List
-    		HashMap<Object, Object> map = createObjects(constructedObjects, Class.forName(type2.getName()), implOfAbstractClasses, specialValues, false);
+    		HashMap<Object, Object> map = createObjects(constructedObjects, type2, implOfAbstractClasses, specialValues, false);
     		Set<Entry<Object,Object>> entries = map.entrySet();
     					
     		for(Entry<Object,Object> entry : entries){
     				
     			//classes of SortedSet must implement comparable interface
-    			if(ClassUtils.getAllInterfaces(parameter).contains(SortedSet.class) && !ClassUtils.getAllInterfaces(entry.getKey().getClass()).contains(Comparable.class)){
-    				throw new AssertionError("The class ("+entry.getKey().getClass().getName()+") which is used in a SortedSet ("+parameter.getName()+") must implement the Comparable interface!");
+    			if(ClassUtils.getAllInterfaces(constructorParameterType).contains(SortedSet.class) && !ClassUtils.getAllInterfaces(entry.getKey().getClass()).contains(Comparable.class)){
+    				throw new PotentialErrorDetected("The class ("+entry.getKey().getClass().getName()+") which is used in a SortedSet ("+constructorParameterType.getName()+") must implement the Comparable interface!");
     			}
     				
     			leftList.add(entry.getKey());
@@ -1295,15 +1298,17 @@ public final class AutoTester {
 	
 	private static void fillMaps(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class<?>[] paramListLeft, Object[] argListLeft,Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		
-		Class<?> parameter = parameters[parameterIndex];
+	    Class<?> constructorParameterType = parameters[parameterIndex];
+	    Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+	    Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
 		
-		paramListLeft[parameterIndex] = Class.forName(parameter.getName());
-		paramListRight[parameterIndex] = Class.forName(parameter.getName());
+		paramListLeft[parameterIndex] = constructorParameterType;
+		paramListRight[parameterIndex] = constructorParameterType;
 		
-        Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-        if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-          argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
-          argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+        
+        if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+          argListLeft[parameterIndex]= clazz;
+          argListRight[parameterIndex]= clazz;
         }
         else{
 		
@@ -1311,7 +1316,7 @@ public final class AutoTester {
     		Map<Object,Object> rightList;
     		
     		//concrete Map class will be instantiated
-    		if(!parameter.isInterface()){
+    		if(!constructorParameterType.isInterface()){
     			leftList = (Map<Object,Object>)paramListLeft[parameterIndex].newInstance();
     			rightList = (Map<Object,Object>)paramListRight[parameterIndex].newInstance();
     		}
@@ -1329,19 +1334,19 @@ public final class AutoTester {
     		Class<?> valueType = (Class<?>)type.getActualTypeArguments()[1];
     		
     		//create objects for the Map
-    		HashMap<Object, Object> values = createObjects(constructedObjects, Class.forName(valueType.getName()), implOfAbstractClasses, specialValues, false);
+    		HashMap<Object, Object> values = createObjects(constructedObjects, valueType, implOfAbstractClasses, specialValues, false);
     		Set<Entry<Object,Object>> entriesV = values.entrySet();
     
     		for(Entry<Object,Object> entryV : entriesV){
     
-    			HashMap<Object, Object> keys = createObjects(constructedObjects, Class.forName(keyType.getName()), implOfAbstractClasses, specialValues, false);
+    			HashMap<Object, Object> keys = createObjects(constructedObjects, keyType, implOfAbstractClasses, specialValues, false);
     			Set<Entry<Object,Object>> entriesK = keys.entrySet();
     
     			for (Entry<Object,Object> entryK : entriesK) {
     				
     				//classes of SortedMap keys must implement comparable interface
-    				if(ClassUtils.getAllInterfaces(parameter).contains(SortedMap.class) && !ClassUtils.getAllInterfaces(entryK.getKey().getClass()).contains(Comparable.class)){
-    					throw new AssertionError("The key class ("+entryK.getKey().getClass().getName()+") which is used in a SortedMap ("+parameter.getName()+") must implement the Comparable interface!");
+    				if(ClassUtils.getAllInterfaces(constructorParameterType).contains(SortedMap.class) && !ClassUtils.getAllInterfaces(entryK.getKey().getClass()).contains(Comparable.class)){
+    					throw new PotentialErrorDetected("The key class ("+entryK.getKey().getClass().getName()+") which is used in a SortedMap ("+constructorParameterType.getName()+") must implement the Comparable interface!");
     				}
     				
     				leftList.put(entryK.getKey(),entryV.getKey());
@@ -1357,20 +1362,22 @@ public final class AutoTester {
 
 	private static void fillObject(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		//Is a normal object
-		Class<?> object = Class.forName(parameters[parameterIndex].getName());
+        Class<?> constructorParameterType = parameters[parameterIndex];
+        Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
 			
 		//recursively check equals
-		HashMap<Object, Object> map = createObjects(constructedObjects, object, implOfAbstractClasses,specialValues, false);
+		HashMap<Object, Object> map = createObjects(constructedObjects, constructorParameterType, implOfAbstractClasses,specialValues, false);
 		Set<Entry<Object,Object>> entries = map.entrySet();
 			
 		for(Entry<Object,Object> entry : entries){
 			paramListLeft[parameterIndex] = entry.getKey().getClass();
 			paramListRight[parameterIndex] = entry.getValue().getClass();
 			
-	         Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-	         if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
-	          argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
-	          argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+	         
+	         if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+	          argListLeft[parameterIndex]= clazz;
+	          argListRight[parameterIndex]= clazz;
 	        }
 	        else{
     			argListLeft[parameterIndex]= entry.getKey();
@@ -1378,7 +1385,7 @@ public final class AutoTester {
     			
     			//1st condition: calling equals on URL objects is not a good idea cp. http://javaantipatterns.wordpress.com/2007/11/24/comparing-urls-with-urlequals
     			//2nd condition: If a class does not override equals then don't call it otherwise objects with the same values are not equals
-    			if(!object.isAssignableFrom(URL.class) && classImplementsEquals(entry.getKey().getClass())){
+    			if(!constructorParameterType.isAssignableFrom(URL.class) && classImplementsEquals(entry.getKey().getClass())){
     				//since only one pair is taken also check equals here for that parameter object (but only a warning is printed out)
     				executeEquals(entry.getKey(), entry.getValue(),true);
     			}
@@ -1389,17 +1396,20 @@ public final class AutoTester {
 	private static void fillSpecialJavaObjects(Class<?>[] parameters, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
 		try{
 		  
-		  Object clazz = specialValues.getSpecialValue(parameterIndex+1);
-		  if(clazz !=null && parameters[parameterIndex].isAssignableFrom(clazz.getClass())){
+		  Class<?> constructorParameterType = parameters[parameterIndex];
+		  Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+		  Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+
+		  if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
           
-		    paramListLeft[parameterIndex] = specialValues.getSpecialValue(parameterIndex+1).getClass();
-		    paramListRight[parameterIndex] = specialValues.getSpecialValue(parameterIndex+1).getClass();
+		    paramListLeft[parameterIndex] = clazz.getClass();
+		    paramListRight[parameterIndex] = clazz.getClass();
 		    
-		    argListLeft[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
-		    argListRight[parameterIndex]= specialValues.getSpecialValue(parameterIndex+1);
+		    argListLeft[parameterIndex]= clazz;
+		    argListRight[parameterIndex]= clazz;
           }
           else{
-            if(parameters[parameterIndex].isAssignableFrom(URL.class)){
+            if(constructorParameterType.isAssignableFrom(URL.class)){
 				paramListLeft[parameterIndex] = URL.class;
 				paramListRight[parameterIndex] = URL.class;
 				
@@ -1408,7 +1418,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= url;
 				argListRight[parameterIndex]= url;
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(URI.class)){
+            else if(constructorParameterType.isAssignableFrom(URI.class)){
 				paramListLeft[parameterIndex] = URI.class;
 				paramListRight[parameterIndex] = URI.class;
 				
@@ -1417,7 +1427,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= uri;
 				argListRight[parameterIndex]= uri;
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(Date.class)){
+            else if(constructorParameterType.isAssignableFrom(Date.class)){
 				paramListLeft[parameterIndex] = Date.class;
 				paramListRight[parameterIndex] = Date.class;
 				
@@ -1426,7 +1436,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= date;
 				argListRight[parameterIndex]= date.clone();
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(Calendar.class)){
+            else if(constructorParameterType.isAssignableFrom(Calendar.class)){
 				paramListLeft[parameterIndex] = Calendar.class;
 				paramListRight[parameterIndex] = Calendar.class;
 				
@@ -1435,7 +1445,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= cal;
 				argListRight[parameterIndex]= cal.clone();
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(Serializable.class)){
+            else if(constructorParameterType.isAssignableFrom(Serializable.class)){
 				paramListLeft[parameterIndex] = Serializable.class;
 				paramListRight[parameterIndex] = Serializable.class;
 				
@@ -1444,7 +1454,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= ser;
 				argListRight[parameterIndex]= ser;
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(BigDecimal.class)){
+            else if(constructorParameterType.isAssignableFrom(BigDecimal.class)){
 				paramListLeft[parameterIndex] = BigDecimal.class;
 				paramListRight[parameterIndex] = BigDecimal.class;
 				
@@ -1453,7 +1463,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= ser;
 				argListRight[parameterIndex]= ser;
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(Color.class)){
+            else if(constructorParameterType.isAssignableFrom(Color.class)){
 				paramListLeft[parameterIndex] = Color.class;
 				paramListRight[parameterIndex] = Color.class;
 				
@@ -1464,21 +1474,21 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= new Color(red,green,blue);
 				argListRight[parameterIndex]= new Color(red,green,blue);
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(Image.class)){
+            else if(constructorParameterType.isAssignableFrom(Image.class)){
 				paramListLeft[parameterIndex] = Image.class;
 				paramListRight[parameterIndex] = Image.class;
 				
 				argListLeft[parameterIndex]= new BufferedImage(256, 256,BufferedImage.TYPE_INT_RGB);
 				argListRight[parameterIndex]= new BufferedImage(256, 256,BufferedImage.TYPE_INT_RGB);
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(ImageObserver.class)){
+            else if(constructorParameterType.isAssignableFrom(ImageObserver.class)){
 				paramListLeft[parameterIndex] = ImageObserver.class;
 				paramListRight[parameterIndex] = ImageObserver.class;
 				
 				argListLeft[parameterIndex]= new Button("Button");
 				argListRight[parameterIndex]= new Button("Button");
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(KeyStore.class)){
+            else if(constructorParameterType.isAssignableFrom(KeyStore.class)){
 				paramListLeft[parameterIndex] = KeyStore.class;
 				paramListRight[parameterIndex] = KeyStore.class;
 				
@@ -1487,7 +1497,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= ks;
 				argListRight[parameterIndex]= ks;
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(PrivateKey.class)){
+            else if(constructorParameterType.isAssignableFrom(PrivateKey.class)){
 				paramListLeft[parameterIndex] = PrivateKey.class;
 				paramListRight[parameterIndex] = PrivateKey.class;
 				
@@ -1501,7 +1511,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= priv;
 				argListRight[parameterIndex]= priv;
 			}
-            else if(parameters[parameterIndex].isAssignableFrom(Certificate.class)){
+            else if(constructorParameterType.isAssignableFrom(Certificate.class)){
 				paramListLeft[parameterIndex] = Certificate.class;
 				paramListRight[parameterIndex] = Certificate.class;
 				
@@ -1512,7 +1522,7 @@ public final class AutoTester {
 				argListRight[parameterIndex]= readCertificate();
 				
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(X509Certificate.class)){
+			else if(constructorParameterType.isAssignableFrom(X509Certificate.class)){
 				paramListLeft[parameterIndex] = X509Certificate.class;
 				paramListRight[parameterIndex] = X509Certificate.class;
 				
@@ -1522,7 +1532,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= readCertificate();
 				argListRight[parameterIndex]= readCertificate();
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(Pattern.class)){
+			else if(constructorParameterType.isAssignableFrom(Pattern.class)){
 			
 				paramListLeft[parameterIndex] = Pattern.class;
 				paramListRight[parameterIndex] = Pattern.class;
@@ -1530,7 +1540,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= Pattern.compile(".");
 				argListRight[parameterIndex]= Pattern.compile(".");
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(StringBuilder.class)){
+			else if(constructorParameterType.isAssignableFrom(StringBuilder.class)){
 			
 				paramListLeft[parameterIndex] = StringBuilder.class;
 				paramListRight[parameterIndex] = StringBuilder.class;
@@ -1540,7 +1550,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= new StringBuilder(rnd);
 				argListRight[parameterIndex]= new StringBuilder(rnd);
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(StringBuffer.class)){
+			else if(constructorParameterType.isAssignableFrom(StringBuffer.class)){
 			    paramListLeft[parameterIndex] = StringBuffer.class;
 				paramListRight[parameterIndex] = StringBuffer.class;
 				
@@ -1549,7 +1559,7 @@ public final class AutoTester {
 				argListLeft[parameterIndex]= new StringBuffer(rnd);
 				argListRight[parameterIndex]= new StringBuffer(rnd);
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(InputStream.class)){
+			else if(constructorParameterType.isAssignableFrom(InputStream.class)){
 			    paramListLeft[parameterIndex] = InputStream.class;
 				paramListRight[parameterIndex] = InputStream.class;
 				
@@ -1562,7 +1572,7 @@ public final class AutoTester {
 					System.err.println("Warning: There is an InputStream parameter. A random inputstream is created however if a specific file is expected this will probably fail. Maybe in future the Tester will be extended to support this.");
 				}
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(Blob.class)){
+			else if(constructorParameterType.isAssignableFrom(Blob.class)){
 				paramListLeft[parameterIndex] = Blob.class;
 				paramListRight[parameterIndex] = Blob.class;
 				
@@ -1573,13 +1583,13 @@ public final class AutoTester {
 					argListRight[parameterIndex]= new SerialBlob(rnd);
 				}
 				catch (SerialException e) {
-					throw new RuntimeException("Error creating random Blob: "+e.getMessage(),e);
+					throw new InternalException("Error creating random Blob: "+e.getMessage(),e);
 				}
 				catch (SQLException e) {
-					throw new RuntimeException("Error creating random Blob!"+e.getMessage(),e);
+					throw new InternalException("Error creating random Blob!"+e.getMessage(),e);
 				}
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(StackTraceElement.class)){
+			else if(constructorParameterType.isAssignableFrom(StackTraceElement.class)){
 			  paramListLeft[parameterIndex] = StackTraceElement.class;
               paramListRight[parameterIndex] = StackTraceElement.class;
               
@@ -1591,7 +1601,7 @@ public final class AutoTester {
               argListLeft[parameterIndex]= new StackTraceElement(declaringClass,methodName,fileName,line);
               argListRight[parameterIndex]= new StackTraceElement(declaringClass,methodName,fileName,line);
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(XMLGregorianCalendar.class)){
+			else if(constructorParameterType.isAssignableFrom(XMLGregorianCalendar.class)){
               paramListLeft[parameterIndex] = XMLGregorianCalendar.class;
               paramListRight[parameterIndex] = XMLGregorianCalendar.class;
               
@@ -1601,59 +1611,59 @@ public final class AutoTester {
                 argListRight[parameterIndex]= DatatypeFactory.newInstance().newXMLGregorianCalendar(cal);
               }
               catch (DatatypeConfigurationException e) {
-                throw new RuntimeException("Error creating XMLGregorianCalendar!"+e.getMessage(),e);
+                throw new InternalException("Error creating XMLGregorianCalendar!"+e.getMessage(),e);
               }
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(LocalDate.class)){
+			else if(constructorParameterType.isAssignableFrom(LocalDate.class)){
 			  paramListLeft[parameterIndex] = LocalDate.class;
               paramListRight[parameterIndex] = LocalDate.class;
               
               argListLeft[parameterIndex]= LocalDate.of(2020,02,29);
               argListRight[parameterIndex]= LocalDate.of(2020,02,29);
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(LocalTime.class)){
+			else if(constructorParameterType.isAssignableFrom(LocalTime.class)){
               paramListLeft[parameterIndex] = LocalTime.class;
               paramListRight[parameterIndex] = LocalTime.class;
               
               argListLeft[parameterIndex]= LocalTime.of(23, 59, 59, 999999999);
               argListRight[parameterIndex]= LocalTime.of(23, 59, 59, 999999999);
             }
-			else if(parameters[parameterIndex].isAssignableFrom(LocalDateTime.class)){
+			else if(constructorParameterType.isAssignableFrom(LocalDateTime.class)){
               paramListLeft[parameterIndex] = LocalDateTime.class;
               paramListRight[parameterIndex] = LocalDateTime.class;
               
               argListLeft[parameterIndex]= LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
               argListRight[parameterIndex]= LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
             }
-			else if(parameters[parameterIndex].isAssignableFrom(ZoneId.class)){
+			else if(constructorParameterType.isAssignableFrom(ZoneId.class)){
               paramListLeft[parameterIndex] = ZoneId.class;
               paramListRight[parameterIndex] = ZoneId.class;
               
               argListLeft[parameterIndex]= ZoneId.systemDefault();
               argListRight[parameterIndex]= ZoneId.systemDefault();
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(ZoneOffset.class)){
+			else if(constructorParameterType.isAssignableFrom(ZoneOffset.class)){
               paramListLeft[parameterIndex] = ZoneOffset.class;
               paramListRight[parameterIndex] = ZoneOffset.class;
               
               argListLeft[parameterIndex]= ZoneOffset.ofHoursMinutesSeconds(17,59,59);
               argListRight[parameterIndex]= ZoneOffset.ofHoursMinutesSeconds(17,59,59);
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(DateTimeFormatter.class)){
+			else if(constructorParameterType.isAssignableFrom(DateTimeFormatter.class)){
               paramListLeft[parameterIndex] = DateTimeFormatter.class;
               paramListRight[parameterIndex] = DateTimeFormatter.class;
               
               argListLeft[parameterIndex]= DateTimeFormatter.BASIC_ISO_DATE;
               argListRight[parameterIndex]= DateTimeFormatter.BASIC_ISO_DATE;
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(Instant.class)){
+			else if(constructorParameterType.isAssignableFrom(Instant.class)){
               paramListLeft[parameterIndex] = Instant.class;
               paramListRight[parameterIndex] = Instant.class;
               
               argListLeft[parameterIndex]= Instant.ofEpochSecond(1, 999999999);
               argListRight[parameterIndex]= Instant.ofEpochSecond(1, 999999999);
 			}
-			else if(parameters[parameterIndex].isAssignableFrom(ZonedDateTime.class)){
+			else if(constructorParameterType.isAssignableFrom(ZonedDateTime.class)){
               paramListLeft[parameterIndex] = ZonedDateTime.class;
               paramListRight[parameterIndex] = ZonedDateTime.class;
               
@@ -1661,21 +1671,21 @@ public final class AutoTester {
               argListRight[parameterIndex]= ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
 			}
 			else{
-				throw new AssertionError("Unsupported class: "+parameters[parameterIndex].getName()+" - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
+				throw new AssertionError("Unsupported class: "+constructorParameterType.getName()+" - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
 			}
           }
 		}
 		catch (URISyntaxException use) {
-			throw new RuntimeException("Error creating URI due to: "+use.getMessage(),use);
+			throw new InternalException("Error creating URI due to: "+use.getMessage(),use);
 		}
 		catch (NoSuchAlgorithmException nsae) {
-			throw new RuntimeException("Error creating Keystore due to: "+nsae.getMessage(),nsae);
+			throw new InternalException("Error creating Keystore due to: "+nsae.getMessage(),nsae);
 		}
 		catch (MalformedURLException mue) {
-			throw new RuntimeException("Error creating URL due to: "+mue,mue);
+			throw new InternalException("Error creating URL due to: "+mue,mue);
 		}
 		catch (KeyStoreException kse) {
-			throw new RuntimeException("Error creating Keystore due to: "+kse.getMessage(),kse);
+			throw new InternalException("Error creating Keystore due to: "+kse.getMessage(),kse);
 		}
 	}
 	
@@ -1738,7 +1748,6 @@ public final class AutoTester {
 			
 			//check if its a enum, then directly instantiate it
 			if(constructor.getDeclaringClass().isEnum()){
-			  //Class<?> object = Class.forName();
 			  Object[] objects = constructor.getDeclaringClass().getEnumConstants();
 		        
 		      if(objects.length>0){
@@ -1803,10 +1812,10 @@ public final class AutoTester {
 			returnObjects.put(newObjLeft,newObjRight);
 		}
 		if(returnObjects.isEmpty() && stored!=null){
-		  throw new RuntimeException(stored);
+		  throw new InternalException(stored);
 		}
 		else if(returnObjects.isEmpty() && enableWarnings){
-		  System.err.println("None of the constructors of the class "+constructors.get(0).getDeclaringClass().getSimpleName()+" could be instantiated (due to creation cycle(s)). Consider revising your application design.");
+		  throw new PotentialErrorDetected("None of the constructors of the class "+constructors.get(0).getDeclaringClass().getSimpleName()+" could be instantiated (due to creation cycle(s)). Consider revising your application design.");
 		}
 	}
 	
@@ -1851,12 +1860,12 @@ public final class AutoTester {
 					//setter changed hashCode thus should also change result of equals
 					if(objectHasChanged(oldHashCode.getExtractedValue(), newHashCode.getExtractedValue())){
 						if(!objectHasChanged(constLeft, constRight)){
-							throw new AssertionError("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") with "+Arrays.toString(argListLeft)+" and the hashCode did change however the result of equals did not! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
+							throw new PotentialErrorDetected("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") with "+Arrays.toString(argListLeft)+" and the hashCode did change however the result of equals did not! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
 						}
 					}
 					else{
 						if(objectHasChanged(constLeft, constRight)){
-							throw new AssertionError("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") with "+Arrays.toString(argListLeft)+" and the hashCode did not change however the result of equals did! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
+							throw new PotentialErrorDetected("Error in "+dtoClass.getSimpleName()+": called ("+method.getName()+") with "+Arrays.toString(argListLeft)+" and the hashCode did not change however the result of equals did! This violates the invariant that equal objects must have equal hashcodes. (Interface contract for Object states: if two objects are equal according to equals(), then they must have the same hashCode() value.)");
 						}
 					}
 					
@@ -1969,7 +1978,7 @@ public final class AutoTester {
 						return new ExtractionValue(false, null);
 					}
 					else if(ite.getCause() instanceof RuntimeException){
-						//TODO TvT: Special adaption for DocumentData.class -> when there is no DocumentCache a runtime exception is thrown
+						//TODO 225010: Special adaption for DocumentData.class -> when there is no DocumentCache a runtime exception is thrown
 						return new ExtractionValue(true, null);
 					}
 					else{
@@ -2021,7 +2030,7 @@ public final class AutoTester {
 		    System.err.println("Error testEquals() - objects match null!");
 		  }
 		  else {
-		    throw new AssertionError("Error testEquals() - objects match null!");
+		    throw new PotentialErrorDetected("Error testEquals() - objects match null!");
 		  }
 		}
 		//equals on itself
@@ -2030,7 +2039,7 @@ public final class AutoTester {
 		    System.err.println("Error testEquals() - object ("+left.getClass().getName()+") isn't equals to itself!");
 		  }
 		  else{
-		    throw new AssertionError("Error testEquals() - object ("+left.getClass().getName()+") isn't equals to itself!");
+		    throw new PotentialErrorDetected("Error testEquals() - object ("+left.getClass().getName()+") isn't equals to itself!");
 		  }
 		}
 		//equals on a different object
@@ -2039,7 +2048,7 @@ public final class AutoTester {
 		    System.err.println("Error testEquals() - object ("+left.getClass().getName()+") always returns true!");
 		  }
 		  else{
-		    throw new AssertionError("Error testEquals() - object ("+left.getClass().getName()+") always returns true!");
+		    throw new PotentialErrorDetected("Error testEquals() - object ("+left.getClass().getName()+") always returns true!");
 		  }
 		}
 		//equals to a different object with same values
@@ -2048,7 +2057,7 @@ public final class AutoTester {
 		    System.err.println("(Parameter) objects should be equals but in fact they are not ("+left.getClass().getName()+") Values: "+left+" vs. "+right+"! An exception may be time related classes which may contain a different timestamp.");
 		  }
 		  else{
-			throw new AssertionError("(Parameter) objects should be equals but in fact they are not ("+left.getClass().getName()+") Values: "+left+" vs. "+right+"!  An exception may be time related classes which may contain a different timestamp.");
+			throw new PotentialErrorDetected("(Parameter) objects should be equals but in fact they are not ("+left.getClass().getName()+") Values: "+left+" vs. "+right+"!  An exception may be time related classes which may contain a different timestamp.");
 		  }
 		}
 	}
@@ -2082,7 +2091,7 @@ public final class AutoTester {
 				 ExtractionValue newValueOfTheField = extractValueFromField(dtoClass, method, constructor);
 				
 				if(!objectHasChanged(oldValueOfTheField.getExtractedValue(),newValueOfTheField.getExtractedValue())){
-					throw new AssertionError("Error @ "+dtoClass.getSimpleName()+": Called the setter ("+method.getName()+") but the corresponding field ("+StringUtils.uncapitalize(method.getName().substring(3))+") didn't change!");
+					throw new PotentialErrorDetected("Error @ "+dtoClass.getSimpleName()+": Called the setter ("+method.getName()+") but the corresponding field ("+StringUtils.uncapitalize(method.getName().substring(3))+") didn't change!");
 				}
 			}
 			else{
@@ -2090,7 +2099,7 @@ public final class AutoTester {
 				ExtractionValue sameValueOfTheField = extractValueFromField(dtoClass, method, constructor);
 				
 				if(objectHasChanged(oldValueOfTheField.getExtractedValue(),sameValueOfTheField.getExtractedValue())){
-					throw new AssertionError("Error @ "+dtoClass.getSimpleName()+": Called the setter ("+method.getName()+") with the same value however the corresponding field ("+StringUtils.uncapitalize(method.getName().substring(3))+") now has a different value!");
+					throw new PotentialErrorDetected("Error @ "+dtoClass.getSimpleName()+": Called the setter ("+method.getName()+") with the same value however the corresponding field ("+StringUtils.uncapitalize(method.getName().substring(3))+") now has a different value!");
 				}
 			}
 		}
@@ -2106,7 +2115,7 @@ public final class AutoTester {
 				ExtractionValue newValueOfGetter=extractValueFromGetter(dtoClass, method, constructor);
 				
 				if(!objectHasChanged(oldValueOfGetter.getExtractedValue(),newValueOfGetter.getExtractedValue())){
-					throw new AssertionError("Error @ "+dtoClass.getSimpleName()+": called the setter ("+method.getName()+") but the return value of the corresponding (get"+method.getName().substring(3)+") didn't change!");
+					throw new PotentialErrorDetected("Error @ "+dtoClass.getSimpleName()+": called the setter ("+method.getName()+") but the return value of the corresponding (get"+method.getName().substring(3)+") didn't change!");
 				}
 			}
 			else{
@@ -2114,7 +2123,7 @@ public final class AutoTester {
 				ExtractionValue sameValueOfGetter =extractValueFromGetter(dtoClass, method, constructor);
 				
 				if(objectHasChanged(oldValueOfTheField.getExtractedValue(),sameValueOfGetter.getExtractedValue())){
-					throw new AssertionError("Error @ "+dtoClass.getSimpleName()+": called the setter ("+method.getName()+") with the same value however the corresponding (get"+method.getName().substring(3)+") now has a different value!");
+					throw new PotentialErrorDetected("Error @ "+dtoClass.getSimpleName()+": called the setter ("+method.getName()+") with the same value however the corresponding (get"+method.getName().substring(3)+") now has a different value!");
 				}
 			}
 		}
@@ -2218,6 +2227,29 @@ public final class AutoTester {
 		return false;
 	}
 	
+	private static void specialValuesValid(Constructor<?>[] constructors, SpecialValueLocator specialValues) {
+	  
+	  for(ConstructorValue value : specialValues.getSpecialValues().keySet()) {
+	    
+        boolean foundMatch=false;
+        
+	    for (Constructor<?> constructor : constructors) {
+	       
+	      boolean numberOfArgumentsMatch = value.getNumberOfArguments()==constructor.getParameters().length;
+	        
+	        if(numberOfArgumentsMatch && constructor.getParameters().length>=value.getParameterIndex()) {
+    	        Class<?> paramType = constructor.getParameterTypes()[value.getParameterIndex()-1];
+    	        if(paramType.isAssignableFrom(value.getDataType())) {
+    	          foundMatch=true;
+    	        }
+	        }
+	    }
+	    if(!foundMatch && value.getNumberOfArguments()!=0) {
+	      throw new PotentialErrorDetected("The following special value could not be matched to any constructor argument. Check the index and the data type.");
+	    }
+	  }
+	}
+	
 	private static X509Certificate readCertificate(){
 		
 		X509Certificate cert = null;
@@ -2231,13 +2263,13 @@ public final class AutoTester {
 			inStream=null;
 		}
 		catch (FileNotFoundException fnfe) {
-			throw new RuntimeException("Could not load example Certificate: "+fnfe.getMessage(),fnfe);
+			throw new InternalException("Could not load example Certificate: "+fnfe.getMessage(),fnfe);
 		}
 		catch (CertificateException ce) {
-			throw new RuntimeException("Could not instantiate Certificate: "+ce.getMessage(),ce);
+			throw new InternalException("Could not instantiate Certificate: "+ce.getMessage(),ce);
 		}
 		catch (IOException ioe) {
-			throw new RuntimeException("Could not load example Certificate: "+ioe.getMessage(),ioe);
+			throw new InternalException("Could not load example Certificate: "+ioe.getMessage(),ioe);
 		}
 		finally{
 			if(inStream!=null){
@@ -2254,8 +2286,12 @@ public final class AutoTester {
 	}
 	
 	static Byte getRandomByte(){
-		byte[] b = new byte[1];
-		AutoTester.r.nextBytes(b);
+		byte[] b = new byte[] {0};
+		
+		while(b[0]==0) {
+		  AutoTester.r.nextBytes(b);
+		}
+		
 		return Byte.valueOf(b[0]);
 	}
 	

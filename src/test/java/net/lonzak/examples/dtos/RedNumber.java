@@ -123,7 +123,35 @@ public class RedNumber<T> implements ColorNumber {
 	  return builder.toString();
 	}
 
-	/*
+	@Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((co == null) ? 0 : co.hashCode());
+      result = prime * result + seqNo;
+      result = prime * result + type;
+      return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    RedNumber<T> other = (RedNumber<T>) obj;
+    if (co != other.co)
+      return false;
+    if (seqNo != other.seqNo)
+      return false;
+    if (type != other.type)
+      return false;
+    return true;
+  }
+
+  /*
 	 * (non-Javadoc)
 	 * 
 	 * @see java.lang.Object#toString()
