@@ -29,19 +29,28 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Sometimes while auto testing classes it is necessary to provide special formats or ranges [...].
+ * This can be done using the special value mechanism provides by this class.
+ * 
+ * @author Lonzak
+ *
+ */
 public final class SpecialValueLocator {
   
   private Map<ConstructorValue, ConstructorValue> specialValues;
   private int numberOfArgumentsConstructor=-1;
   
+  /**
+   * If no special value should be used.
+   */
   public static final SpecialValueLocator NONE = new SpecialValueLocator(new ArrayList<ConstructorValue>());
  
   /**
    * Initializes the list of special values with one value.
-   * To add further values use the {@link #addSpecialValue(ConstructorValue, Object)} or {@link #setSpecialValues(Map)} methods. 
+   * To add further values use the {@link #addSpecialValue(ConstructorValue)} method. 
    * 
-   * @param location of the special value 
-   * @param specialValue the special value which should be used for the Constructor
+   * @param constructorValue the special value which should be used for the Constructor
    */
   public SpecialValueLocator(ConstructorValue constructorValue) {
     this.specialValues= new HashMap<>();
@@ -51,7 +60,7 @@ public final class SpecialValueLocator {
   
   /**
    * Constructs a special value list to be able to set individual constructor arguments.
-   * @param specialValues a list of special values
+   * @param constructorValues a list of special values
    */
   public SpecialValueLocator(List<ConstructorValue> constructorValues) {
     this.specialValues= new HashMap<>();
@@ -61,20 +70,16 @@ public final class SpecialValueLocator {
     }
   }
   
+  /**
+   * 
+   * @param constructorValue the special value which should be used
+   */
   public void addSpecialValue(ConstructorValue constructorValue){
     this.specialValues.put(constructorValue,constructorValue);
   }
   
-  public void setSpecialValues(Map<ConstructorValue, ConstructorValue> specialValues){
-    this.specialValues.putAll(specialValues);
-  }
-  
-  protected Map<ConstructorValue, ConstructorValue> getSpecialValues(){
+  Map<ConstructorValue, ConstructorValue> getSpecialValues(){
     return this.specialValues;
-  }
-
-  public int getNumberOfArgumentsConstructor() {
-    return this.numberOfArgumentsConstructor;
   }
 
   /**
@@ -102,7 +107,7 @@ public final class SpecialValueLocator {
    * 
    * @param numberOfArguments of the special value to retrieve
    * @param parameterIndex of the special value to retrieve
-   * @param primitiveType type of the parameter
+   * @param dataType of the parameter
    * 
    * @return the special object or null
    */
@@ -112,12 +117,12 @@ public final class SpecialValueLocator {
   
   /**
    * Retrieves the special value by using the parameterIndex.
-   * The constructor is used from the {@link #numberOfArgumentsConstructor} 
+   * The umberOfArguments must be set in advance. {@link SpecialValueLocator#setNumberOfArgumentsConstructor(int)} 
    * 
    * @param parameterIndex of the special value to retrieve
    * @return the special object or null
    */
-  public Object getSpecialValue(int parameterIndex,  Class<?> dataType){
+  Object getSpecialValue(int parameterIndex,  Class<?> dataType){
     if(this.numberOfArgumentsConstructor!=-1){
       ConstructorValue specialValue = this.specialValues.get(new ConstructorValue(this.numberOfArgumentsConstructor,parameterIndex,null,dataType));
       return specialValue==null ? null : specialValue.getValue();
@@ -132,10 +137,10 @@ public final class SpecialValueLocator {
   
   /**
    * 
-   * @param parameterIndex
+   * @param parameterIndex 
    * @return the data type or null
    */
-  public Class<?> getDataType(int parameterIndex, Class<?> dataType){
+  Class<?> getDataType(int parameterIndex, Class<?> dataType){
     if(this.numberOfArgumentsConstructor!=-1){
       ConstructorValue value = this.specialValues.get(new ConstructorValue(this.numberOfArgumentsConstructor,parameterIndex,null,dataType));
       return value==null ? null : value.getDataType();
@@ -204,11 +209,11 @@ public final class SpecialValueLocator {
     /**
      * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
      * 
-     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * @see #ConstructorValue(int, int, Object, Class)
      * 
      * @param numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex the index of the parameter of that constructor
-     * @param special object value
+     * @param value object value
      */
     public ConstructorValue(int numberOfArguments, int parameterIndex, Object value){
       this(numberOfArguments,parameterIndex,value,value.getClass());
@@ -216,7 +221,7 @@ public final class SpecialValueLocator {
     
     /**
      * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
-     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * @see #ConstructorValue(int, int, java.lang.Object, java.lang.Class)
      * 
      * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex parameterIndex the index of the parameter of that constructor
@@ -228,7 +233,7 @@ public final class SpecialValueLocator {
     
     /**
      * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
-     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * @see #ConstructorValue(int, int, Object, Class)
      * 
      * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex parameterIndex the index of the parameter of that constructor
@@ -240,7 +245,7 @@ public final class SpecialValueLocator {
 
     /**
      * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
-     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * @see #ConstructorValue(int, int, Object, Class)
      * 
      * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex parameterIndex the index of the parameter of that constructor
@@ -252,7 +257,7 @@ public final class SpecialValueLocator {
 
     /**
      * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
-     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * @see #ConstructorValue(int, int, Object, Class)
      * 
      * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex parameterIndex the index of the parameter of that constructor
@@ -264,7 +269,7 @@ public final class SpecialValueLocator {
 
     /**
      * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
-     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * @see #ConstructorValue(int, int, Object, Class)
      * 
      * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex parameterIndex the index of the parameter of that constructor
@@ -276,7 +281,7 @@ public final class SpecialValueLocator {
 
     /**
      * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
-     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * @see #ConstructorValue(int, int, Object, Class)
      * 
      * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex parameterIndex the index of the parameter of that constructor
@@ -288,7 +293,7 @@ public final class SpecialValueLocator {
     
     /**
      * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
-     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * @see #ConstructorValue(int, int, Object, Class)
      * 
      * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex parameterIndex the index of the parameter of that constructor
@@ -300,7 +305,7 @@ public final class SpecialValueLocator {
 
     /**
      * Constructor to construct an object parameter. Also can be a standard string, an array or an Enum. 
-     * @see ConstructorValue#ConstructorValue(int, int, Object, Class)
+     * @see #ConstructorValue(int, int, Object, Class)
      * 
      * @param numberOfArguments numberOfArguments the number of the arguments of a constructor
      * @param parameterIndex parameterIndex the index of the parameter of that constructor
@@ -313,10 +318,10 @@ public final class SpecialValueLocator {
     
     /**
      * Internal Constructor to be able to locate a special value
-     * @param numberOfArguments
-     * @param parameterIndex
+     * @param numberOfArguments the number of the arguments of a constructor
+     * @param parameterIndex  the index of the parameter of that constructor
      */
-    protected ConstructorValue(int numberOfArguments, int parameterIndex){
+    ConstructorValue(int numberOfArguments, int parameterIndex){
       if(numberOfArguments!=0 && numberOfArguments<parameterIndex) throw new IllegalArgumentException("The number of arguments ("+numberOfArguments+") can not be smaller than the parameter index ("+parameterIndex+")!");
       if(numberOfArguments<0 || parameterIndex <1) throw new IllegalArgumentException("Illegal value for number of constructor arguments ("+numberOfArguments+") or the parameter index("+parameterIndex+")!");
       this.numberOfArguments=numberOfArguments;
@@ -347,19 +352,23 @@ public final class SpecialValueLocator {
       return this.dataType;
     }
     
+    /**
+     * 
+     * @return the actual 'special' format value which should be used
+     */
     public Object getValue() {
       return this.value;
     }
 
     /**
-     * Compares whether a Location has the same coordinates (numberOfArguments and parameterIndex)
+     * Compares whether a ConstructorValue has the same coordinates (numberOfArguments and parameterIndex)
      * 
-     * @param location
+     * @param constructorValue to compare this class with
      * 
      * @return true if the coordinates match otherwise false
      */
-    public boolean compareCoordinates(ConstructorValue location) {
-      return this.numberOfArguments==location.getNumberOfArguments() && this.parameterIndex==location.getParameterIndex();
+    public boolean compareCoordinates(ConstructorValue constructorValue) {
+      return this.numberOfArguments==constructorValue.getNumberOfArguments() && this.parameterIndex==constructorValue.getParameterIndex();
     }
 
     @Override

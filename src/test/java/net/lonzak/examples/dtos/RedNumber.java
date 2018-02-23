@@ -81,7 +81,6 @@ public class RedNumber<T> implements ColorNumber {
 	}
 
 	/**
-	 * @see RedNumber#type
 	 * @return int
 	 */
 	public int getType() {
@@ -89,15 +88,13 @@ public class RedNumber<T> implements ColorNumber {
 	}
 
 	/**
-	 * @see RedNumber#co
-	 * @return ClassOfInsurance
+	 * @return ClassOfColor
 	 */
 	public ClassOfColor getCo() {
 		return this.co;
 	}
 
 	/**
-	 * @see RedNumber#seqNo
 	 * @return int
 	 */
 	public int getSeqNo() {
