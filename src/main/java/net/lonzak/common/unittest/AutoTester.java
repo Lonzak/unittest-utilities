@@ -612,9 +612,13 @@ public final class AutoTester {
 	private static void fillPrimitiveType(Class<?>[] parameters, Class<?>[] paramListLeft, Object[] argListLeft, Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
 		
 	    Class<?> constructorParameterType = parameters[parameterIndex];
-	    Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);	    
 	    Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
-	  
+	    
+        Class<?> specialValueDataType=null;
+        if(clazz!=null) {
+          specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        }
+	    
         //primitive types
 		if(constructorParameterType.isAssignableFrom(byte.class)){
 			paramListLeft[parameterIndex] = Byte.TYPE;
@@ -761,9 +765,13 @@ public final class AutoTester {
 	 */
 	private static boolean fillJavaLangType(Class<?>[] parameters, Class<?>[] paramListLeft, Object[] argListLeft,Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
 	    Class<?> constructorParameterType = parameters[parameterIndex];
-        Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
         Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
-
+        
+        Class<?> specialValueDataType=null;
+        if(clazz!=null) {
+          specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        }
+        
 		//check String
 	    if(constructorParameterType.isAssignableFrom(String.class)){
 			paramListLeft[parameterIndex] = String.class;
@@ -911,8 +919,12 @@ public final class AutoTester {
 	
 	private static void fillArray(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
         Class<?> constructorParameterType = parameters[parameterIndex];
-        Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
         Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+        
+        Class<?> specialValueDataType=null;
+        if(clazz!=null) {
+          specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        }
       
 		//primitive Arrays 
 	   if(constructorParameterType.isAssignableFrom(int[].class)){
@@ -1215,8 +1227,12 @@ public final class AutoTester {
           paramListLeft[parameterIndex] = objects[enumValue].getClass();
           paramListRight[parameterIndex] = objects[enumValue].getClass();
           
-          Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
           Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+          
+          Class<?> specialValueDataType=null;
+          if(clazz!=null) {
+            specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+          }
           
           if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
             argListLeft[parameterIndex]= clazz;
@@ -1235,8 +1251,12 @@ public final class AutoTester {
 	private static void fillCollections(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		
 	    Class<?> constructorParameterType = parameters[parameterIndex];
-        Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
         Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+        
+        Class<?> specialValueDataType=null;
+        if(clazz!=null) {
+          specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        }
 		
 		paramListLeft[parameterIndex] = constructorParameterType;
 		paramListRight[parameterIndex] = constructorParameterType;
@@ -1299,8 +1319,12 @@ public final class AutoTester {
 	private static void fillMaps(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Type[] types, Class<?>[] paramListLeft, Object[] argListLeft,Class<?>[] paramListRight, Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		
 	    Class<?> constructorParameterType = parameters[parameterIndex];
-	    Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
 	    Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+	    
+        Class<?> specialValueDataType=null;
+        if(clazz!=null) {
+          specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        }
 		
 		paramListLeft[parameterIndex] = constructorParameterType;
 		paramListRight[parameterIndex] = constructorParameterType;
@@ -1363,8 +1387,12 @@ public final class AutoTester {
 	private static void fillObject(ArrayList<Class<?>> constructedObjects, Class<?>[] parameters, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException{
 		//Is a normal object
         Class<?> constructorParameterType = parameters[parameterIndex];
-        Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
         Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+        
+        Class<?> specialValueDataType=null;
+        if(clazz!=null) {
+          specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+        }
 			
 		//recursively check equals
 		HashMap<Object, Object> map = createObjects(constructedObjects, constructorParameterType, implOfAbstractClasses,specialValues, false);
@@ -1397,8 +1425,12 @@ public final class AutoTester {
 		try{
 		  
 		  Class<?> constructorParameterType = parameters[parameterIndex];
-		  Class<?> specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
 		  Object clazz = specialValues.getSpecialValue(parameterIndex+1,constructorParameterType);
+		  
+		  Class<?> specialValueDataType=null;
+		  if(clazz!=null) {
+		    specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
+		  }
 
 		  if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
           
