@@ -1394,31 +1394,37 @@ public final class AutoTester {
           specialValueDataType = specialValues.getDataType(parameterIndex+1,constructorParameterType);       
         }
 			
-		//recursively check equals
-		HashMap<Object, Object> map = createObjects(constructedObjects, constructorParameterType, implOfAbstractClasses,specialValues, false);
-		Set<Entry<Object,Object>> entries = map.entrySet();
-			
-		for(Entry<Object,Object> entry : entries){
-			paramListLeft[parameterIndex] = entry.getKey().getClass();
-			paramListRight[parameterIndex] = entry.getValue().getClass();
-			
-	         
-	         if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
-	          argListLeft[parameterIndex]= clazz;
-	          argListRight[parameterIndex]= clazz;
-	        }
-	        else{
-    			argListLeft[parameterIndex]= entry.getKey();
-    			argListRight[parameterIndex]= entry.getValue();
+        if(clazz !=null && specialValueDataType.isAssignableFrom(constructorParameterType)){
+          paramListLeft[parameterIndex] = constructorParameterType;
+          paramListRight[parameterIndex] = constructorParameterType;
+          argListLeft[parameterIndex]= clazz;
+          argListRight[parameterIndex]= clazz;
+        }
+        else{
+    		//recursively check equals
+    		HashMap<Object, Object> map = createObjects(constructedObjects, constructorParameterType, implOfAbstractClasses,specialValues, false);
+    		Set<Entry<Object,Object>> entries = map.entrySet();
     			
-    			//1st condition: calling equals on URL objects is not a good idea cp. http://javaantipatterns.wordpress.com/2007/11/24/comparing-urls-with-urlequals
-    			//2nd condition: If a class does not override equals then don't call it otherwise objects with the same values are not equals
-    			if(!constructorParameterType.isAssignableFrom(URL.class) && classImplementsEquals(entry.getKey().getClass())){
-    				//since only one pair is taken also check equals here for that parameter object (but only a warning is printed out)
-    				executeEquals(entry.getKey(), entry.getValue(),true);
-    			}
-	        }
-		}
+    		for(Entry<Object,Object> entry : entries){
+    			paramListLeft[parameterIndex] = entry.getKey().getClass();
+    			paramListRight[parameterIndex] = entry.getValue().getClass();
+    	         
+       			argListLeft[parameterIndex]= entry.getKey();
+       			argListRight[parameterIndex]= entry.getValue();
+        			
+       			//1st condition: calling equals on URL objects is not a good idea cp. http://javaantipatterns.wordpress.com/2007/11/24/comparing-urls-with-urlequals
+       			//2nd condition: If a class does not override equals then don't call it otherwise objects with the same values are not equals
+       			if(!constructorParameterType.isAssignableFrom(URL.class) && classImplementsEquals(entry.getKey().getClass())){
+       			  try {
+       			    //since only one pair is taken also check equals here for that parameter object (but only a warning is printed out)
+       			    executeEquals(entry.getKey(), entry.getValue(),true);
+       			  }
+       			  catch(Exception e) {
+       			    throw new PotentialErrorDetected("The equals() implementation of the attribute '"+entry.getKey().getClass().getName()+"' is broken. ("+e.getMessage()+")");
+       			  }
+        		}
+    		}
+        }
 	}
 	
 	private static void fillSpecialJavaObjects(Class<?>[] parameters, Class<?>[] paramListLeft,Object[] argListLeft,Class<?>[] paramListRight,Object[] argListRight, int parameterIndex, SpecialValueLocator specialValues){
@@ -2277,7 +2283,7 @@ public final class AutoTester {
 	        }
 	    }
 	    if(!foundMatch && value.getNumberOfArguments()!=0) {
-	      throw new PotentialErrorDetected("The following special value could not be matched to any constructor argument. Check the index and the data type.");
+	      System.err.println("The following special value "+specialValues+" could not be matched to any constructor argument. Check the index and the data type.");
 	    }
 	  }
 	}
