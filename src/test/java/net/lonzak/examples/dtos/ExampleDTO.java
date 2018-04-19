@@ -1,25 +1,18 @@
 /*
- * ===========================================
- * unittest-utilities
- * ===========================================
+ * =========================================== unittest-utilities ===========================================
  *
- * Project Info:  https://github.com/Lonzak/unittest-utilities
+ * Project Info: https://github.com/Lonzak/unittest-utilities
  * 
  * (C) Copyright 2012-2017 nepatec GmbH & Co. KG
  *
- *  This file is part of unittest-utilities
+ * This file is part of unittest-utilities
  *
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General
+ * Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version. This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+ * License for more details. You should have received a copy of the GNU Lesser General Public License along with this
+ * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
 package net.lonzak.examples.dtos;
@@ -32,12 +25,12 @@ import java.util.Map;
 import java.util.Set;
 
 public class ExampleDTO {
-  
+
   private List<String> stringValues;
   private Set<Integer> integerValues;
-  
-  private Map<BigDecimal,BigDecimal> numberValues;
-  
+
+  private Map<BigDecimal, BigDecimal> numberValues;
+
   private int[] intArray;
   private long[] longArray;
   private float[] floatArray;
@@ -62,8 +55,7 @@ public class ExampleDTO {
     this.bigDecimalArray = bigDecimalArray;
   }
 
-  public ExampleDTO(List<String> stringValues, Set<Integer> integerValues,
-      Map<BigDecimal, BigDecimal> numberValues) {
+  public ExampleDTO(List<String> stringValues, Set<Integer> integerValues, Map<BigDecimal, BigDecimal> numberValues) {
     super();
     this.stringValues = stringValues;
     this.integerValues = integerValues;
@@ -176,52 +168,64 @@ public class ExampleDTO {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (this.getClass() != obj.getClass()) {
       return false;
+    }
     ExampleDTO other = (ExampleDTO) obj;
-    if (!Arrays.equals(this.bigDecimalArray, other.bigDecimalArray))
+    if (!Arrays.equals(this.bigDecimalArray, other.bigDecimalArray)) {
       return false;
-    if (!Arrays.equals(this.doubleArray, other.doubleArray))
+    }
+    if (!Arrays.equals(this.doubleArray, other.doubleArray)) {
       return false;
-    if (!Arrays.equals(this.floatArray, other.floatArray))
+    }
+    if (!Arrays.equals(this.floatArray, other.floatArray)) {
       return false;
-    if (!Arrays.equals(this.intArray, other.intArray))
+    }
+    if (!Arrays.equals(this.intArray, other.intArray)) {
       return false;
+    }
     if (this.integerValues == null) {
-      if (other.integerValues != null)
+      if (other.integerValues != null) {
         return false;
+      }
+    } else if (!this.integerValues.equals(other.integerValues)) {
+      return false;
     }
-    else if (!this.integerValues.equals(other.integerValues))
+    if (!Arrays.equals(this.longArray, other.longArray)) {
       return false;
-    if (!Arrays.equals(this.longArray, other.longArray))
-      return false;
+    }
     if (this.numberValues == null) {
-      if (other.numberValues != null)
+      if (other.numberValues != null) {
         return false;
+      }
+    } else if (!this.numberValues.equals(other.numberValues)) {
+      return false;
     }
-    else if (!this.numberValues.equals(other.numberValues))
+    if (!Arrays.equals(this.stringArray, other.stringArray)) {
       return false;
-    if (!Arrays.equals(this.stringArray, other.stringArray))
-      return false;
+    }
     if (this.stringValues == null) {
-      if (other.stringValues != null)
+      if (other.stringValues != null) {
         return false;
-    }
-    else if (!this.stringValues.equals(other.stringValues))
+      }
+    } else if (!this.stringValues.equals(other.stringValues)) {
       return false;
+    }
     return true;
   }
 
   @Override
   public String toString() {
     return "ExampleDTO [stringValues=" + this.stringValues + ", integerValues=" + this.integerValues + ", numberValues="
-        + this.numberValues + ", intArray=" + Arrays.toString(this.intArray) + ", longArray=" + Arrays.toString(this.longArray)
-        + ", floatArray=" + Arrays.toString(this.floatArray) + ", doubleArray=" + Arrays.toString(this.doubleArray)
-        + ", stringArray=" + Arrays.toString(this.stringArray) + ", bigDecimalArray=" + Arrays.toString(this.bigDecimalArray)
-        + "]";
+        + this.numberValues + ", intArray=" + Arrays.toString(this.intArray) + ", longArray="
+        + Arrays.toString(this.longArray) + ", floatArray=" + Arrays.toString(this.floatArray) + ", doubleArray="
+        + Arrays.toString(this.doubleArray) + ", stringArray=" + Arrays.toString(this.stringArray)
+        + ", bigDecimalArray=" + Arrays.toString(this.bigDecimalArray) + "]";
   }
 }

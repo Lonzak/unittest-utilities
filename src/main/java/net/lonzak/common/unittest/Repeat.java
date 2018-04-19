@@ -6,8 +6,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Retention( RetentionPolicy.RUNTIME )
-@Target({ METHOD, ANNOTATION_TYPE })
+@Retention(RetentionPolicy.RUNTIME)
+@Target({METHOD, ANNOTATION_TYPE})
 public @interface Repeat {
-    int value() default 1;
+  int value() default 1;
 }
