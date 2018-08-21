@@ -15,32 +15,31 @@
  * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-package net.lonzak.examples.exceptions;
+package net.lonzak.common.unittest.examples.enums;
 
 /**
- * Example for a specific technical exception.
- *
+ * Some other enum
  */
-public class ServiceNotAvailableException extends TechnicalException {
+public enum LineOfColor {
 
-  private static final long serialVersionUID = -1047762760696764530L;
-  public final static int ERRORNUMBER = 101;
+  BLACKANDWHITE(0), SEPIA(1), GRAY(2), MONOCHROME(3), COLOR(9);
 
-  /**
-   * Constructs a default {@link ServiceNotAvailableException} with the following message: "The service is not
-   * available"
-   */
-  public ServiceNotAvailableException() {
-    super("The service is not available", ERRORNUMBER);
+  private int numValue;
+
+  LineOfColor(int val) {
+    this.numValue = val;
   }
 
-  /**
-   * Constructs a default {@link ServiceNotAvailableException} with the following message: "The service 'serviceName' is
-   * not available"
-   * 
-   * @param serviceName the service which is not available
-   */
-  public ServiceNotAvailableException(String serviceName) {
-    super("The service " + serviceName + " is not available!", ERRORNUMBER);
+  public int getNumValue() {
+    return this.numValue;
+  }
+
+  public static net.lonzak.common.unittest.examples.enums.LineOfColor map(int valueToMap) {
+    for (net.lonzak.common.unittest.examples.enums.LineOfColor art : net.lonzak.common.unittest.examples.enums.LineOfColor.values()) {
+      if (art.numValue == valueToMap) {
+        return art;
+      }
+    }
+    return null;
   }
 }

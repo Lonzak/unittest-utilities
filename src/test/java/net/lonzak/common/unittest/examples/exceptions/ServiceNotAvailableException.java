@@ -15,37 +15,32 @@
  * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-package net.lonzak.examples.enums;
+package net.lonzak.common.unittest.examples.exceptions;
 
 /**
- * Some Enum
+ * Example for a specific technical exception.
+ *
  */
-public enum ClassOfColor {
-  H1(100, LineOfColor.SEPIA), H2(200, LineOfColor.MONOCHROME), H3(300, LineOfColor.GRAY), H4(400,
-      LineOfColor.BLACKANDWHITE), H5(900, LineOfColor.COLOR);
+public class ServiceNotAvailableException extends TechnicalException {
 
-  private int numValue;
-  private LineOfColor colorLine;
+  private static final long serialVersionUID = -1047762760696764530L;
+  public final static int ERRORNUMBER = 101;
 
-  ClassOfColor(int val, LineOfColor lineOfColor) {
-    this.numValue = val;
-    this.colorLine = lineOfColor;
+  /**
+   * Constructs a default {@link ServiceNotAvailableException} with the following message: "The service is not
+   * available"
+   */
+  public ServiceNotAvailableException() {
+    super("The service is not available", ERRORNUMBER);
   }
 
-  public int getNumValue() {
-    return this.numValue;
-  }
-
-  public LineOfColor getLineOfColor() {
-    return this.colorLine;
-  }
-
-  public static ClassOfColor map(int valueToMap) {
-    for (ClassOfColor art : ClassOfColor.values()) {
-      if (art.numValue == valueToMap) {
-        return art;
-      }
-    }
-    return null;
+  /**
+   * Constructs a default {@link ServiceNotAvailableException} with the following message: "The service 'serviceName' is
+   * not available"
+   * 
+   * @param serviceName the service which is not available
+   */
+  public ServiceNotAvailableException(String serviceName) {
+    super("The service " + serviceName + " is not available!", ERRORNUMBER);
   }
 }

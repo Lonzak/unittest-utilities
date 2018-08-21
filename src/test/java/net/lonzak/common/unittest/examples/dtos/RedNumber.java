@@ -15,9 +15,9 @@
  * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-package net.lonzak.examples.dtos;
+package net.lonzak.common.unittest.examples.dtos;
 
-import net.lonzak.examples.enums.ClassOfColor;
+import net.lonzak.common.unittest.examples.enums.ClassOfColor;
 
 /**
  * Example for a colored number: Red

@@ -15,21 +15,22 @@
  * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-package net.lonzak.examples.dtos;
+package net.lonzak.common.unittest.examples.exceptions;
 
+/**
+ * Domain related exceptions.
+ *
+ */
+public class DomainException extends UnittestException {
 
-public interface ColorNumber {
+  private static final long serialVersionUID = -4681672291284468344L;
 
-  /**
-   * @return the formatted color number
-   *
-   */
-  String toFormattedString();
+  public DomainException(String message, Throwable cause, int errorNumber) {
+    super(message, cause, errorNumber);
+  }
 
-  /**
-   * An unformatted String representation of the color number.
-   * 
-   * @return String key format
-   */
-  String toIdentificationString();
+  public DomainException(String message, int errorNumber) {
+    super(message, errorNumber);
+  }
+
 }

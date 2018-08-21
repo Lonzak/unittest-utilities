@@ -1,8 +1,9 @@
-package net.lonzak.examples.classes;
+package net.lonzak.common.unittest.examples.classes;
 
 import java.util.ArrayList;
-import net.lonzak.examples.dtos.RedNumber;
-import net.lonzak.examples.enums.LineOfColor;
+
+import net.lonzak.common.unittest.examples.dtos.RedNumber;
+import net.lonzak.common.unittest.examples.enums.LineOfColor;
 
 public class Constructor2 {
 

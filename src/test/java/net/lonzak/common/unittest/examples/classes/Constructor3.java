@@ -1,4 +1,4 @@
-package net.lonzak.examples.classes;
+package net.lonzak.common.unittest.examples.classes;
 
 public class Constructor3 {
   private String name;

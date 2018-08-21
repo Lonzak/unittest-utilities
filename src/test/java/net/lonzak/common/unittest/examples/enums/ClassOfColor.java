@@ -15,27 +15,33 @@
  * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-package net.lonzak.examples.enums;
+package net.lonzak.common.unittest.examples.enums;
 
 /**
- * Some other enum
+ * Some Enum
  */
-public enum LineOfColor {
-
-  BLACKANDWHITE(0), SEPIA(1), GRAY(2), MONOCHROME(3), COLOR(9);
+public enum ClassOfColor {
+  H1(100, LineOfColor.SEPIA), H2(200, LineOfColor.MONOCHROME), H3(300, LineOfColor.GRAY), H4(400,
+      LineOfColor.BLACKANDWHITE), H5(900, LineOfColor.COLOR);
 
   private int numValue;
+  private LineOfColor colorLine;
 
-  LineOfColor(int val) {
+  ClassOfColor(int val, LineOfColor lineOfColor) {
     this.numValue = val;
+    this.colorLine = lineOfColor;
   }
 
   public int getNumValue() {
     return this.numValue;
   }
 
-  public static net.lonzak.examples.enums.LineOfColor map(int valueToMap) {
-    for (net.lonzak.examples.enums.LineOfColor art : net.lonzak.examples.enums.LineOfColor.values()) {
+  public LineOfColor getLineOfColor() {
+    return this.colorLine;
+  }
+
+  public static ClassOfColor map(int valueToMap) {
+    for (ClassOfColor art : ClassOfColor.values()) {
       if (art.numValue == valueToMap) {
         return art;
       }

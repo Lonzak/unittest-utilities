@@ -15,45 +15,21 @@
  * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-package net.lonzak.examples.dtos;
+package net.lonzak.common.unittest.examples.exceptions;
 
 /**
- * Example for a colored number: Black
+ * Used for internal, technical exceptions.
+ *
  */
-public class BlackNumber implements ColorNumber {
+public class TechnicalException extends UnittestException {
 
-  /**
-   * Black Numbers consists just of one sequential number
-   */
-  private final long id;
+  private static final long serialVersionUID = 5575471024545290949L;
 
-
-  public BlackNumber(long id) {
-    super();
-    this.id = id;
+  public TechnicalException(String message, Throwable cause, int errorNumber) {
+    super(message, cause, errorNumber);
   }
 
-
-  public Long getLong() {
-    return this.id;
+  public TechnicalException(String message, int errorNumber) {
+    super(message, errorNumber);
   }
-
-  @Override
-  public String toIdentificationString() {
-    return Long.toString(this.id);
-  }
-
-  @Override
-  public String toFormattedString() {
-    String result = "00000000" + Long.toString(this.id);
-    return "#" + result.substring(result.length() - 9, result.length() - 6) + "-"
-        + result.substring(result.length() - 6, result.length() - 3) + "-"
-        + result.substring(result.length() - 3, result.length());
-  }
-
-  @Override
-  public String toString() {
-    return "Number Black [" + this.toIdentificationString() + "]";
-  }
-
 }

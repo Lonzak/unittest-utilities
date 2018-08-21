@@ -1491,7 +1491,8 @@ public final class AutoTester {
           paramListLeft[parameterIndex] = Date.class;
           paramListRight[parameterIndex] = Date.class;
 
-          Date date = new Date(System.currentTimeMillis());
+          //subtract a random number since otherwise when called twice the same date might be returned
+          Date date = new Date(System.currentTimeMillis()-getRandomInt());
 
           argListLeft[parameterIndex] = date;
           argListRight[parameterIndex] = date.clone();
@@ -1500,6 +1501,8 @@ public final class AutoTester {
           paramListRight[parameterIndex] = Calendar.class;
 
           Calendar cal = Calendar.getInstance();
+          //subtract a random number since otherwise when called twice the same cal might be returned
+          cal.setTime(new Date(System.currentTimeMillis()-getRandomInt()));
 
           argListLeft[parameterIndex] = cal;
           argListRight[parameterIndex] = cal.clone();
@@ -2141,7 +2144,7 @@ public final class AutoTester {
   private static void compareOldAndNew(Class<?> dtoClass, Method method, Object[] argList, Object constructor)
       throws IllegalAccessException, InvocationTargetException {
 
-    // extract the old values for a later comparison (old=value after creating object with constrcutor)
+    // extract the old values for a later comparison (old=value after creating object with constructor)
     ExtractionValue oldValueOfTheField = extractValueFromField(dtoClass, method, constructor);
     ExtractionValue oldValueOfGetter = extractValueFromGetter(dtoClass, method, constructor);
 
@@ -2308,9 +2311,9 @@ public final class AutoTester {
 
       for (Constructor<?> constructor : constructors) {
 
-        boolean numberOfArgumentsMatch = value.getNumberOfArguments() == constructor.getParameters().length;
+        boolean numberOfArgumentsMatch = value.getNumberOfArguments() == constructor.getParameterCount();
 
-        if (numberOfArgumentsMatch && constructor.getParameters().length >= value.getParameterIndex()) {
+        if (numberOfArgumentsMatch && constructor.getParameterCount() >= value.getParameterIndex()) {
           Class<?> paramType = constructor.getParameterTypes()[value.getParameterIndex() - 1];
           if (paramType.isAssignableFrom(value.getDataType())) {
             foundMatch = true;
@@ -2412,8 +2415,8 @@ public final class AutoTester {
 
   /**
    * 
-   * @param n
-   * @return
+   * @param range (positive) range
+   * @return a positive random int including zero 
    */
   static int getRandomIntIncludingZero(int range) {
     return AutoTester.r.nextInt(range);

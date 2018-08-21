@@ -15,7 +15,7 @@
  * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-package net.lonzak.examples;
+package net.lonzak.common.unittest;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -27,25 +27,28 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
+
+import org.junit.Assert;
 import org.junit.Test;
 import net.lonzak.common.unittest.AutoTester;
 import net.lonzak.common.unittest.PotentialErrorDetected;
 import net.lonzak.common.unittest.SpecialValueLocator;
 import net.lonzak.common.unittest.SpecialValueLocator.ConstructorValue;
-import net.lonzak.examples.classes.ArrayObject;
-import net.lonzak.examples.classes.Constructor;
-import net.lonzak.examples.classes.Constructor2;
-import net.lonzak.examples.classes.Constructor3;
-import net.lonzak.examples.classes.ConstructorFailures;
-import net.lonzak.examples.classes.DtoWithNoToString;
-import net.lonzak.examples.classes.PrivateConstructor;
-import net.lonzak.examples.dtos.ExampleDTO;
-import net.lonzak.examples.dtos.RedNumber;
-import net.lonzak.examples.enums.ClassOfColor;
-import net.lonzak.examples.enums.LineOfColor;
-import net.lonzak.examples.exceptions.DomainException;
-import net.lonzak.examples.exceptions.ServiceNotAvailableException;
-import net.lonzak.examples.exceptions.TechnicalException;
+import net.lonzak.common.unittest.examples.classes.ArrayObject;
+import net.lonzak.common.unittest.examples.classes.Constructor;
+import net.lonzak.common.unittest.examples.classes.Constructor2;
+import net.lonzak.common.unittest.examples.classes.Constructor3;
+import net.lonzak.common.unittest.examples.classes.ConstructorFailures;
+import net.lonzak.common.unittest.examples.classes.DtoWithNoToString;
+import net.lonzak.common.unittest.examples.classes.PrivateConstructor;
+import net.lonzak.common.unittest.examples.dtos.ExampleDTO;
+import net.lonzak.common.unittest.examples.dtos.RedNumber;
+import net.lonzak.common.unittest.examples.enums.ClassOfColor;
+import net.lonzak.common.unittest.examples.enums.LineOfColor;
+import net.lonzak.common.unittest.examples.exceptions.DomainException;
+import net.lonzak.common.unittest.examples.exceptions.ServiceNotAvailableException;
+import net.lonzak.common.unittest.examples.exceptions.TechnicalException;
 
 public class AutoTesterTest {
 
@@ -246,5 +249,98 @@ public class AutoTesterTest {
   @Test(expected = PotentialErrorDetected.class)
   public void testIllegalToString() {
     AutoTester.testClass(DtoWithNoToString.class);
+  }
+  
+  @Test
+  public void testRandomMethods(){
+    BigDecimal number = AutoTester.getRandomBigDecimal();
+	Assert.assertTrue(number.intValue()>=0 && number.intValue()<Integer.MAX_VALUE);
+		
+	Boolean bool = AutoTester.getRandomBoolean();
+	Assert.assertTrue(bool.booleanValue()==true || bool.booleanValue()==false);
+		
+	Boolean[] bools = AutoTester.getRandomBooleanArray();
+	Assert.assertTrue(bools.length>=0 && bools.length<42);
+		
+	boolean[] primBools = AutoTester.getRandomBooleanArrayPrimitive();
+	Assert.assertTrue(primBools.length>=0 && primBools.length<42);
+	
+	Byte buyte = AutoTester.getRandomByte();
+	Assert.assertTrue(buyte.intValue()>-129 && buyte.intValue()<128);
+	
+	Byte[] bytes = AutoTester.getRandomByteArray();
+	Assert.assertTrue(bytes.length>=0 && bytes.length<42);
+	
+	byte[] primBytes = AutoTester.getRandomByteArrayPrimitive();
+	Assert.assertTrue(primBytes.length>=0 && primBytes.length<42);
+	
+	Character care = AutoTester.getRandomCharacter();
+	Assert.assertTrue(care.charValue()>-Character.MIN_VALUE && care.charValue()<=Character.MAX_VALUE);
+	
+	Character[] cares = AutoTester.getRandomCharacterArray();
+	Assert.assertTrue(cares.length>=0 && cares.length<42);
+		char[] primCares = AutoTester.getRandomCharArrayPrimitive();
+	Assert.assertTrue(primCares.length>=0 && primCares.length<42);
+	
+	Double doubel = AutoTester.getRandomDouble();
+	Assert.assertTrue(doubel.doubleValue()>=Double.MIN_VALUE && doubel.doubleValue()<=Double.MAX_VALUE);
+	
+	Double[] doubels = AutoTester.getRandomDoubleArray();
+	Assert.assertTrue(doubels.length>=0 && doubels.length<42);
+	
+	double[] primDoubels = AutoTester.getRandomDoubleArrayPrimitive();
+	Assert.assertTrue(primDoubels.length>=0 && primDoubels.length<42);
+	
+	Float flohd = AutoTester.getRandomFloat();
+	Assert.assertTrue(flohd.floatValue()>=Float.MIN_VALUE && flohd.floatValue()<=Float.MAX_VALUE);
+	
+	Float[] flohds = AutoTester.getRandomFloatArray();
+	Assert.assertTrue(flohds.length>=0 && flohds.length<42);
+	
+	float[] primFlohds = AutoTester.getRandomFloatArrayPrimitive();
+	Assert.assertTrue(primFlohds.length>=0 && primFlohds.length<42);
+	
+	Integer ind = AutoTester.getRandomInteger();
+	Assert.assertTrue(ind.intValue()>=Integer.MIN_VALUE && ind.intValue()<=Integer.MAX_VALUE);
+	
+	Integer[] inds = AutoTester.getRandomIntegerArray();
+	Assert.assertTrue(inds.length>=0 && inds.length<42);
+	
+	int[] primInds = AutoTester.getRandomIntArrayPrimitive();
+	Assert.assertTrue(primInds.length>=0 && primInds.length<42);
+	
+	int range = Math.abs(new Random(System.nanoTime()).nextInt());
+	int intInRange = AutoTester.getRandomInt(range);
+	Assert.assertTrue(intInRange>=0 && intInRange<=intInRange);
+	
+	Long lon = AutoTester.getRandomLong();
+	Assert.assertTrue(lon.longValue()>=Long.MIN_VALUE && lon.longValue()<=Long.MAX_VALUE);
+	
+	Long[] lons = AutoTester.getRandomLongArray();
+	Assert.assertTrue(lons.length>=0 && lons.length<42);
+	
+	long[] primLons = AutoTester.getRandomLongArrayPrimitive();
+	Assert.assertTrue(primLons.length>=0 && primLons.length<42);
+	
+	Short shoat = AutoTester.getRandomShort();
+	Assert.assertTrue(shoat.shortValue()>=Short.MIN_VALUE && shoat.shortValue()<=Short.MAX_VALUE);
+	
+	Short[] shoats = AutoTester.getRandomShortArray();
+	Assert.assertTrue(shoats.length>=0 && shoats.length<42);
+	
+	short[] primShoats = AutoTester.getRandomShortArrayPrimitive();
+	Assert.assertTrue(primShoats.length>=0 && primShoats.length<42);
+	
+	String string = AutoTester.getRandomString();
+	Assert.assertTrue(string.length()>0);
+	
+	int unsinedShortByte = Byte.parseByte(AutoTester.getRandomUnsignedIntAsString(Byte.MAX_VALUE));
+	Assert.assertTrue(unsinedShortByte>=0 && unsinedShortByte<=Byte.MAX_VALUE);
+	
+	int unsinedShort = Short.parseShort(AutoTester.getRandomUnsignedIntAsString(Short.MAX_VALUE));
+	Assert.assertTrue(unsinedShort>=0 && unsinedShort<=Short.MAX_VALUE);
+	
+	int unsinedInt = Integer.parseInt(AutoTester.getRandomUnsignedIntAsString(Integer.MAX_VALUE));
+	Assert.assertTrue(unsinedInt>=0 && unsinedInt<=Integer.MAX_VALUE);
   }
 }

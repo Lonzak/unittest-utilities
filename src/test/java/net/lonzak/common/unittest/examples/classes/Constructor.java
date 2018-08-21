@@ -1,10 +1,11 @@
-package net.lonzak.examples.classes;
+package net.lonzak.common.unittest.examples.classes;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import net.lonzak.examples.enums.LineOfColor;
+
+import net.lonzak.common.unittest.examples.enums.LineOfColor;
 
 public class Constructor {
 

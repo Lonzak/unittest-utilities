@@ -15,22 +15,29 @@
  * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-package net.lonzak.examples.exceptions;
+package net.lonzak.common.unittest.examples.exceptions;
 
 /**
- * Domain related exceptions.
+ * Abstract parent exception
  *
  */
-public class DomainException extends UnittestException {
+public abstract class UnittestException extends RuntimeException {
 
-  private static final long serialVersionUID = -4681672291284468344L;
+  private static final long serialVersionUID = 6475167466556808562L;
+  private final int errorNumber;
 
-  public DomainException(String message, Throwable cause, int errorNumber) {
-    super(message, cause, errorNumber);
+
+  public UnittestException(String message, Throwable cause, int errorNumber) {
+    super(message, cause);
+    this.errorNumber = errorNumber;
   }
 
-  public DomainException(String message, int errorNumber) {
-    super(message, errorNumber);
+  public UnittestException(String message, int errorNumber) {
+    super(message);
+    this.errorNumber = errorNumber;
   }
 
+  public int getErrorNumber() {
+    return this.errorNumber;
+  }
 }

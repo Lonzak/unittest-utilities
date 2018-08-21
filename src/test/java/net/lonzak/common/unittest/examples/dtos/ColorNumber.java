@@ -15,29 +15,21 @@
  * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-package net.lonzak.examples.exceptions;
-
-/**
- * Abstract parent exception
- *
- */
-public abstract class UnittestException extends RuntimeException {
-
-  private static final long serialVersionUID = 6475167466556808562L;
-  private final int errorNumber;
+package net.lonzak.common.unittest.examples.dtos;
 
 
-  public UnittestException(String message, Throwable cause, int errorNumber) {
-    super(message, cause);
-    this.errorNumber = errorNumber;
-  }
+public interface ColorNumber {
 
-  public UnittestException(String message, int errorNumber) {
-    super(message);
-    this.errorNumber = errorNumber;
-  }
+  /**
+   * @return the formatted color number
+   *
+   */
+  String toFormattedString();
 
-  public int getErrorNumber() {
-    return this.errorNumber;
-  }
+  /**
+   * An unformatted String representation of the color number.
+   * 
+   * @return String key format
+   */
+  String toIdentificationString();
 }
