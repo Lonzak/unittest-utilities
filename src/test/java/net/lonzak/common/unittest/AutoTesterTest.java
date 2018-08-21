@@ -18,13 +18,13 @@
 package net.lonzak.common.unittest;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
+//import java.time.Instant;
+//import java.time.LocalDate;
+//import java.time.LocalDateTime;
+//import java.time.LocalTime;
+//import java.time.ZoneOffset;
+//import java.time.ZonedDateTime;
+//import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -100,16 +100,16 @@ public class AutoTesterTest {
     AutoTester.testPrivateMethod(map.keySet().toArray()[0], "setA", "TEST");
   }
 
-  @Test
-  public void testTimes() {
-    AutoTester.testClass(LocalTime.class);
-    AutoTester.testClass(LocalDate.class);
-    AutoTester.testClass(LocalDateTime.class);
-    AutoTester.testClass(ZoneOffset.class);
-    AutoTester.testClass(DateTimeFormatter.class);
-    AutoTester.testClass(Instant.class);
-    AutoTester.testClass(ZonedDateTime.class);
-  }
+//  @Test
+//  public void testTimes() {
+//    AutoTester.testClass(LocalTime.class);
+//    AutoTester.testClass(LocalDate.class);
+//    AutoTester.testClass(LocalDateTime.class);
+//    AutoTester.testClass(ZoneOffset.class);
+//    AutoTester.testClass(DateTimeFormatter.class);
+//    AutoTester.testClass(Instant.class);
+//    AutoTester.testClass(ZonedDateTime.class);
+//  }
 
   @Test
   public void testArrays() {

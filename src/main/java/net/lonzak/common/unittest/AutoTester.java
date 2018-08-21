@@ -53,14 +53,14 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.sql.Blob;
 import java.sql.SQLException;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
+//import java.time.Instant;
+//import java.time.LocalDate;
+//import java.time.LocalDateTime;
+//import java.time.LocalTime;
+//import java.time.ZoneId;
+//import java.time.ZoneOffset;
+//import java.time.ZonedDateTime;
+//import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -1660,55 +1660,57 @@ public final class AutoTester {
           catch (DatatypeConfigurationException e) {
             throw new InternalException("Error creating XMLGregorianCalendar!" + e.getMessage(), e);
           }
-        } else if (constructorParameterType.isAssignableFrom(LocalDate.class)) {
-          paramListLeft[parameterIndex] = LocalDate.class;
-          paramListRight[parameterIndex] = LocalDate.class;
-
-          argListLeft[parameterIndex] = LocalDate.of(2020, 02, 29);
-          argListRight[parameterIndex] = LocalDate.of(2020, 02, 29);
-        } else if (constructorParameterType.isAssignableFrom(LocalTime.class)) {
-          paramListLeft[parameterIndex] = LocalTime.class;
-          paramListRight[parameterIndex] = LocalTime.class;
-
-          argListLeft[parameterIndex] = LocalTime.of(23, 59, 59, 999999999);
-          argListRight[parameterIndex] = LocalTime.of(23, 59, 59, 999999999);
-        } else if (constructorParameterType.isAssignableFrom(LocalDateTime.class)) {
-          paramListLeft[parameterIndex] = LocalDateTime.class;
-          paramListRight[parameterIndex] = LocalDateTime.class;
-
-          argListLeft[parameterIndex] = LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
-          argListRight[parameterIndex] = LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
-        } else if (constructorParameterType.isAssignableFrom(ZoneId.class)) {
-          paramListLeft[parameterIndex] = ZoneId.class;
-          paramListRight[parameterIndex] = ZoneId.class;
-
-          argListLeft[parameterIndex] = ZoneId.systemDefault();
-          argListRight[parameterIndex] = ZoneId.systemDefault();
-        } else if (constructorParameterType.isAssignableFrom(ZoneOffset.class)) {
-          paramListLeft[parameterIndex] = ZoneOffset.class;
-          paramListRight[parameterIndex] = ZoneOffset.class;
-
-          argListLeft[parameterIndex] = ZoneOffset.ofHoursMinutesSeconds(17, 59, 59);
-          argListRight[parameterIndex] = ZoneOffset.ofHoursMinutesSeconds(17, 59, 59);
-        } else if (constructorParameterType.isAssignableFrom(DateTimeFormatter.class)) {
-          paramListLeft[parameterIndex] = DateTimeFormatter.class;
-          paramListRight[parameterIndex] = DateTimeFormatter.class;
-
-          argListLeft[parameterIndex] = DateTimeFormatter.BASIC_ISO_DATE;
-          argListRight[parameterIndex] = DateTimeFormatter.BASIC_ISO_DATE;
-        } else if (constructorParameterType.isAssignableFrom(Instant.class)) {
-          paramListLeft[parameterIndex] = Instant.class;
-          paramListRight[parameterIndex] = Instant.class;
-
-          argListLeft[parameterIndex] = Instant.ofEpochSecond(1, 999999999);
-          argListRight[parameterIndex] = Instant.ofEpochSecond(1, 999999999);
-        } else if (constructorParameterType.isAssignableFrom(ZonedDateTime.class)) {
-          paramListLeft[parameterIndex] = ZonedDateTime.class;
-          paramListRight[parameterIndex] = ZonedDateTime.class;
-
-          argListLeft[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
-          argListRight[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
-        } else {
+        } 
+//        else if (constructorParameterType.isAssignableFrom(LocalDate.class)) {
+//          paramListLeft[parameterIndex] = LocalDate.class;
+//          paramListRight[parameterIndex] = LocalDate.class;
+//
+//          argListLeft[parameterIndex] = LocalDate.of(2020, 02, 29);
+//          argListRight[parameterIndex] = LocalDate.of(2020, 02, 29);
+//        } else if (constructorParameterType.isAssignableFrom(LocalTime.class)) {
+//          paramListLeft[parameterIndex] = LocalTime.class;
+//          paramListRight[parameterIndex] = LocalTime.class;
+//
+//          argListLeft[parameterIndex] = LocalTime.of(23, 59, 59, 999999999);
+//          argListRight[parameterIndex] = LocalTime.of(23, 59, 59, 999999999);
+//        } else if (constructorParameterType.isAssignableFrom(LocalDateTime.class)) {
+//          paramListLeft[parameterIndex] = LocalDateTime.class;
+//          paramListRight[parameterIndex] = LocalDateTime.class;
+//
+//          argListLeft[parameterIndex] = LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
+//          argListRight[parameterIndex] = LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
+//        } else if (constructorParameterType.isAssignableFrom(ZoneId.class)) {
+//          paramListLeft[parameterIndex] = ZoneId.class;
+//          paramListRight[parameterIndex] = ZoneId.class;
+//
+//          argListLeft[parameterIndex] = ZoneId.systemDefault();
+//          argListRight[parameterIndex] = ZoneId.systemDefault();
+//        } else if (constructorParameterType.isAssignableFrom(ZoneOffset.class)) {
+//          paramListLeft[parameterIndex] = ZoneOffset.class;
+//          paramListRight[parameterIndex] = ZoneOffset.class;
+//
+//          argListLeft[parameterIndex] = ZoneOffset.ofHoursMinutesSeconds(17, 59, 59);
+//          argListRight[parameterIndex] = ZoneOffset.ofHoursMinutesSeconds(17, 59, 59);
+//        } else if (constructorParameterType.isAssignableFrom(DateTimeFormatter.class)) {
+//          paramListLeft[parameterIndex] = DateTimeFormatter.class;
+//          paramListRight[parameterIndex] = DateTimeFormatter.class;
+//
+//          argListLeft[parameterIndex] = DateTimeFormatter.BASIC_ISO_DATE;
+//          argListRight[parameterIndex] = DateTimeFormatter.BASIC_ISO_DATE;
+//        } else if (constructorParameterType.isAssignableFrom(Instant.class)) {
+//          paramListLeft[parameterIndex] = Instant.class;
+//          paramListRight[parameterIndex] = Instant.class;
+//
+//          argListLeft[parameterIndex] = Instant.ofEpochSecond(1, 999999999);
+//          argListRight[parameterIndex] = Instant.ofEpochSecond(1, 999999999);
+//        } else if (constructorParameterType.isAssignableFrom(ZonedDateTime.class)) {
+//          paramListLeft[parameterIndex] = ZonedDateTime.class;
+//          paramListRight[parameterIndex] = ZonedDateTime.class;
+//
+//          argListLeft[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
+//          argListRight[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
+//        } 
+      else {
           throw new AssertionError("Unsupported class: " + constructorParameterType.getName()
               + " - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
         }
@@ -2144,7 +2146,7 @@ public final class AutoTester {
   private static void compareOldAndNew(Class<?> dtoClass, Method method, Object[] argList, Object constructor)
       throws IllegalAccessException, InvocationTargetException {
 
-    // extract the old values for a later comparison (old=value after creating object with constructor)
+    // extract the old values for a later comparison (old=value after creating object with construcdtor)
     ExtractionValue oldValueOfTheField = extractValueFromField(dtoClass, method, constructor);
     ExtractionValue oldValueOfGetter = extractValueFromGetter(dtoClass, method, constructor);
 
@@ -2311,9 +2313,9 @@ public final class AutoTester {
 
       for (Constructor<?> constructor : constructors) {
 
-        boolean numberOfArgumentsMatch = value.getNumberOfArguments() == constructor.getParameterCount();
+        boolean numberOfArgumentsMatch = value.getNumberOfArguments() == constructor.getParameterTypes().length;
 
-        if (numberOfArgumentsMatch && constructor.getParameterCount() >= value.getParameterIndex()) {
+        if (numberOfArgumentsMatch && constructor.getParameterTypes().length >= value.getParameterIndex()) {
           Class<?> paramType = constructor.getParameterTypes()[value.getParameterIndex() - 1];
           if (paramType.isAssignableFrom(value.getDataType())) {
             foundMatch = true;
