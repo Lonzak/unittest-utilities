@@ -950,7 +950,24 @@ public final class AutoTester {
       }
       argListLeft[parameterIndex] = c;
       argListRight[parameterIndex] = c;
-    } else {
+    }else if (constructorParameterType.isAssignableFrom(Throwable.class)) {
+        paramListLeft[parameterIndex] = Throwable.class;
+        paramListRight[parameterIndex] = Throwable.class;
+
+        Throwable t;
+
+        if (clazz != null && specialValueDataType.isAssignableFrom(constructorParameterType)) {
+          t = (Throwable) clazz;
+        } else {
+          t = new Throwable(getRandomString());
+        }
+
+        argListLeft[parameterIndex] = t;
+        argListRight[parameterIndex] = t;
+      } 
+    
+    
+    else {
       return false;
     }
     return true;
@@ -1496,6 +1513,15 @@ public final class AutoTester {
 
           argListLeft[parameterIndex] = date;
           argListRight[parameterIndex] = date.clone();
+        } else if (constructorParameterType.isAssignableFrom(java.sql.Date.class)) {
+          paramListLeft[parameterIndex] = java.sql.Date.class;
+          paramListRight[parameterIndex] = java.sql.Date.class;
+
+          //subtract a random number since otherwise when called twice the same date might be returned
+          Date date = new java.sql.Date(System.currentTimeMillis()-getRandomInt());
+
+          argListLeft[parameterIndex] = date;
+          argListRight[parameterIndex] = date.clone();
         } else if (constructorParameterType.isAssignableFrom(Calendar.class)) {
           paramListLeft[parameterIndex] = Calendar.class;
           paramListRight[parameterIndex] = Calendar.class;
@@ -1823,7 +1849,10 @@ public final class AutoTester {
             for (Class<?> parameterClass : parameters) {
 
               for (Class<?> constructedClass : constructedClasses) {
-                if (parameterClass.isAssignableFrom(constructedClass)) {
+            	  
+            	 //change needs to be verified: A cycle might not occurr if it is a subclass. E,g, MyException extends Excepion (subclass of throwable) and a throwable parameter
+                //if (parameterClass.isAssignableFrom(constructedClass)) {
+            	  if (parameterClass.getName().equals(constructedClass.getName())) {
                   // Skip constructor: A class creation cycle has been detected. The class
                   // '"+constructedClass.getSimpleName()+"' should be created however is needed as parameter for
                   // "+constructor.getDeclaringClass().getSimpleName()+" at the same time
