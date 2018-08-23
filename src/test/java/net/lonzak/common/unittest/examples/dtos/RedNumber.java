@@ -3,7 +3,7 @@
  *
  * Project Info: https://github.com/Lonzak/unittest-utilities
  * 
- * (C) Copyright 2012-2017 nepatec GmbH & Co. KG
+ * (C) Copyright 2012-2018 nepatec GmbH
  *
  * This file is part of unittest-utilities
  *

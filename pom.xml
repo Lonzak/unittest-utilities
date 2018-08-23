@@ -5,7 +5,7 @@
 	<groupId>net.lonzak.common</groupId>
 	<artifactId>unittest-utilities</artifactId>
 	<name>Automating junit tests</name>
-	<version>1.3.1</version>
+	<version>1.3.2</version>
  
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
