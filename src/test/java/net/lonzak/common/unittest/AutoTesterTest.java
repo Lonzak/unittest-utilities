@@ -42,8 +42,10 @@ import net.lonzak.common.unittest.examples.classes.Constructor3;
 import net.lonzak.common.unittest.examples.classes.ConstructorFailures;
 import net.lonzak.common.unittest.examples.classes.DtoWithNoToString;
 import net.lonzak.common.unittest.examples.classes.PrivateConstructor;
+import net.lonzak.common.unittest.examples.dtos.BlackNumber;
 import net.lonzak.common.unittest.examples.dtos.ExampleDTO;
 import net.lonzak.common.unittest.examples.dtos.RedNumber;
+import net.lonzak.common.unittest.examples.dtos.Triangle;
 import net.lonzak.common.unittest.examples.enums.ClassOfColor;
 import net.lonzak.common.unittest.examples.enums.LineOfColor;
 import net.lonzak.common.unittest.examples.exceptions.DomainException;
@@ -55,8 +57,9 @@ public class AutoTesterTest {
   @Test
   public void testDTOs() {
     // Default Tests
-    // AutoTester.testClass(BlackNumber.class);
+    AutoTester.testClass(BlackNumber.class);
     AutoTester.testClass(ExampleDTO.class);
+    AutoTester.testClass(Triangle.class);
   }
 
   @Test

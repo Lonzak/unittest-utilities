@@ -372,7 +372,7 @@ public final class AutoTester {
    * @param dtoClass to test
    * @param implOfAbstractClasses
    * @param specialValues
-   * @param allConstructors
+   * @param allConstructors true when all constructors should be checked or only one
    * 
    * @throws ClassNotFoundException
    * @throws IllegalAccessException
@@ -1758,12 +1758,17 @@ public final class AutoTester {
 
   private static void fillEverything(ArrayList<Class<?>> constructedClasses, Class<?>[] parameters, Type[] types,
       Object[] argListLeft, Object[] argListRight, List<Class<?>> implOfAbstractClasses,
-      SpecialValueLocator specialValues)
+      SpecialValueLocator specialValues, boolean allConstructors)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
     Class<?>[] paramListLeft = new Class[parameters.length];
     Class<?>[] paramListRight = new Class[parameters.length];
 
     for (int j = 0; j < parameters.length; j++) {
+    	
+      // clear constructedClasses for sub-objects of previous parameters since each parameter has to be looked at individually
+      if (allConstructors && constructedClasses.size() > 1) {
+        constructedClasses.subList(1,constructedClasses.size()).clear();
+      }
 
       // detect the different types
       if (parameters[j].isPrimitive()) {
@@ -1866,7 +1871,7 @@ public final class AutoTester {
             }
 
             fillEverything(constructedClasses, parameters, types, argListLeft, argListRight, implOfAbstractClasses,
-                specialValues);
+                specialValues,allConstructors);
             // call constructor
             newObjLeft = constructor.newInstance(argListLeft);
             newObjRight = constructor.newInstance(argListRight);
@@ -1887,6 +1892,7 @@ public final class AutoTester {
           }
         }
       }
+      
       // return newly created objects
       returnObjects.put(newObjLeft, newObjRight);
     }
@@ -1916,7 +1922,7 @@ public final class AutoTester {
         Object[] argListRight = new Object[parameters.length];
 
         fillEverything(constructedClasses, parameters, types, argListLeft, argListRight, implOfAbstractClasses,
-            specialValues);
+            specialValues,false);
 
         // call method for every constructed constructor
         Set<Entry<Object, Object>> consts = constructedObjects.entrySet();
@@ -1989,7 +1995,7 @@ public final class AutoTester {
         Type[] types = method.getGenericParameterTypes();
 
         fillEverything(constructedClasses, parameters, types, argListLeft, argListRight, implOfAbstractClasses,
-            specialValues);
+            specialValues,false);
 
         // call set method for every constructed constructor
         Set<Entry<Object, Object>> consts = constructedObjects.entrySet();
