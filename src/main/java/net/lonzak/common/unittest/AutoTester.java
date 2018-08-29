@@ -1988,6 +1988,31 @@ public final class AutoTester {
           }
           continue;
         }
+        if (parameters.length < 1) {
+          if (enableWarnings) {
+            System.err.println(dtoClass.getSimpleName() + ": The " + method.getName()
+                + " has no parameter thus it is skipped. Only <field>, <setField(Field field)>, Field:<getField()> type methods, following the java beans code convention, are supported!");
+          }
+          continue;
+        }
+        
+        //compare set method parameter against get method return value
+        for (Method getter : allMethods) {
+        	if (getter.getName().startsWith("get") && getter.getName().substring(3).equals(method.getName().substring(3))) {
+        		Class<?> returnType = getter.getReturnType();
+        		Class<?> parameter = parameters[0];
+        		
+        		if (!returnType.equals(parameter)) {
+        	      if (enableWarnings) {
+        	        System.err.println(dtoClass.getSimpleName() + ": The " + method.getName() + "("+parameter.getName()+") and <"+returnType.getName()+"> "+getter.getName()+"() methods differ in parameter and return type. It might work but in case of errors you have to add it to the ignore list. Only simple getter/setters following the java beans code convention, are supported!");
+        	      }
+        	      continue;
+        		}
+        		else {
+        			break;
+        		}
+        	}
+        }
 
         Object[] argListLeft = new Object[parameters.length];
         Object[] argListRight = new Object[parameters.length];
@@ -2185,6 +2210,9 @@ public final class AutoTester {
     ExtractionValue oldValueOfTheField = extractValueFromField(dtoClass, method, constructor);
     ExtractionValue oldValueOfGetter = extractValueFromGetter(dtoClass, method, constructor);
 
+    //Activate in case it causes problems: the random method returned the same object. In this case skip the compare.
+    //if(!oldValueOfTheField.getExtractedValue().equals(argList)) { //skip }
+    
     // invoke one setter on the left object
     method.invoke(constructor, argList);
 
