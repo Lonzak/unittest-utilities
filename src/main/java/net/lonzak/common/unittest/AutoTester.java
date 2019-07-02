@@ -81,6 +81,9 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialException;
 import javax.xml.datatype.DatatypeConfigurationException;
@@ -1575,6 +1578,16 @@ public final class AutoTester {
           paramListRight[parameterIndex] = KeyStore.class;
 
           KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+		  
+          try{
+			ks.load(null,null);
+		  }
+		  catch(IOException ioe){
+			throw new InternalException("Error creating empty keystore!", ioe);
+		  }
+		  catch (CertificateException ce) {
+			  throw new InternalException("Error loadung empty keystore!", ce);
+		  }
 
           argListLeft[parameterIndex] = ks;
           argListRight[parameterIndex] = ks;
@@ -1584,8 +1597,8 @@ public final class AutoTester {
 
           KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
           SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-          keyGen.initialize(512, random);
-
+		  keyGen.initialize(2048, random);
+		    
           KeyPair pair = keyGen.generateKeyPair();
           PrivateKey priv = pair.getPrivate();
 
@@ -1686,7 +1699,14 @@ public final class AutoTester {
           catch (DatatypeConfigurationException e) {
             throw new InternalException("Error creating XMLGregorianCalendar!" + e.getMessage(), e);
           }
-        } 
+        }
+        else if (constructorParameterType.isAssignableFrom(DataSource.class)) {
+            paramListLeft[parameterIndex] = DataSource.class;
+            paramListRight[parameterIndex] = DataSource.class;
+
+            argListLeft[parameterIndex] = new FileDataSource("/Test.cer");
+            argListRight[parameterIndex] = new FileDataSource("/Test.cer");
+        }
 //        else if (constructorParameterType.isAssignableFrom(LocalDate.class)) {
 //          paramListLeft[parameterIndex] = LocalDate.class;
 //          paramListRight[parameterIndex] = LocalDate.class;
