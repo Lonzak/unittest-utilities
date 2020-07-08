@@ -23,9 +23,11 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
@@ -1660,6 +1662,17 @@ public final class AutoTester {
             System.err.println(
                 "Warning: There is an InputStream parameter. A random inputstream is created however if a specific file is expected this will probably fail. Maybe in future the Tester will be extended to support this.");
           }
+        } else if (constructorParameterType.isAssignableFrom(OutputStream.class)) {
+            paramListLeft[parameterIndex] = OutputStream.class;
+            paramListRight[parameterIndex] = OutputStream.class;
+
+            argListLeft[parameterIndex] = new ByteArrayOutputStream();
+            argListRight[parameterIndex] = new ByteArrayOutputStream();
+
+            if (enableWarnings) {
+              System.err.println(
+                  "Warning: There is an OutputStream parameter. A ByteArrayOutputStream is created however if a specific one is expected this will probably fail. Maybe in future the Tester will be extended to support this.");
+            }
         } else if (constructorParameterType.isAssignableFrom(Blob.class)) {
           paramListLeft[parameterIndex] = Blob.class;
           paramListRight[parameterIndex] = Blob.class;
