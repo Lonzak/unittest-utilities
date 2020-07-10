@@ -562,6 +562,17 @@ public final class AutoTester {
           }
         }
       }
+      else if (current.getName().startsWith("is")) {
+          String name = current.getName().substring(2);
+
+          // there are some methods only called 'get' (e.g. java.time.LocalTime)
+          if (name.length() > 0) {
+            name = name.subSequence(0, 1).toString().toLowerCase() + name.substring(1);
+            if (propertiesToIgnore.contains(name)) {
+              toRemove.add(current);
+            }
+          }
+        }
     }
 
     for (Method method : toRemove) {
@@ -2031,7 +2042,8 @@ public final class AutoTester {
         
         //compare set method parameter against get method return value
         for (Method getter : allMethods) {
-        	if (getter.getName().startsWith("get") && getter.getName().substring(3).equals(method.getName().substring(3))) {
+        	if ((getter.getName().startsWith("get") && getter.getName().substring(3).equals(method.getName().substring(3))) || 
+        		(getter.getName().startsWith("is") && getter.getName().substring(2).equals(method.getName().substring(3)))) {
         		Class<?> returnType = getter.getReturnType();
         		Class<?> parameter = parameters[0];
         		
@@ -2088,11 +2100,14 @@ public final class AutoTester {
 
     // check if method has a corresponding field
     for (int j = 0; j < fields.length; j++) {
-      if (StringUtils.uncapitalize(method.getName().substring(3)).equals(fields[j].getName())) {
+      if (StringUtils.uncapitalize(method.getName().substring(3)).equals(fields[j].getName()) ||
+    	  //some boolean values are named "isValue"
+          StringUtils.uncapitalize("is"+method.getName().substring(3)).equals(fields[j].getName())) {
         Field field = fields[j];
         field.setAccessible(true);
         return new ExtractionValue(true, field.get(constructedObject));
       }
+
     }
 
     // if no value is found in the direct class, check super classes
@@ -2296,7 +2311,7 @@ public final class AutoTester {
         if (objectHasChanged(oldValueOfTheField.getExtractedValue(), sameValueOfGetter.getExtractedValue())) {
           throw new PotentialErrorDetected("Error @ " + dtoClass.getSimpleName() + ": called the setter ("
               + method.getName() + ") with the same value however the corresponding (get"
-              + method.getName().substring(3) + ") now has a different value!");
+              + method.getName().substring(3) + ") now has a different value: "+oldValueOfTheField.getExtractedValue()+" vs. "+sameValueOfGetter.getExtractedValue());
         }
       }
     } else {
