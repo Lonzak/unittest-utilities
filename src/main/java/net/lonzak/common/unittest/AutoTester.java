@@ -384,7 +384,7 @@ public final class AutoTester {
    * @throws InstantiationException
    * @throws InvocationTargetException
    * @throws IllegalArgumentException
-   * @throws @throws AssertionError if test fails
+   * @throws AssertionError if test fails
    */
   private static HashMap<Object, Object> createObjects(ArrayList<Class<?>> constructedClasses, Class<?> dtoClass,
       List<Class<?>> implOfAbstractClasses, SpecialValueLocator specialValues, boolean allConstructors)
@@ -2084,14 +2084,11 @@ public final class AutoTester {
   /**
    * 
    * @param dtoClass
-   * @param fields
    * @param method
    * @param constructedObject
-   * @param value of the actual field
    * @returns true when the field could be found otherwise false
    * @throws IllegalArgumentException
    * @throws IllegalAccessException
-   * @throws InvocationTargetException
    */
   private static ExtractionValue extractValueFromField(Class<?> dtoClass, Method method, Object constructedObject)
       throws IllegalAccessException {
@@ -2126,10 +2123,8 @@ public final class AutoTester {
   /**
    * 
    * @param dtoClass
-   * @param fields
    * @param method
    * @param constructedObject
-   * @param returnValue of the getter method
    * @return true when the field could be found otherwise false
    * @throws IllegalArgumentException
    * @throws IllegalAccessException
@@ -2168,10 +2163,7 @@ public final class AutoTester {
   /**
    * 
    * @param dtoClass
-   * @param fields
-   * @param method
    * @param constructedObject
-   * @param returnValue of the getter method
    * @return true when the field could be found otherwise false
    * @throws IllegalArgumentException
    * @throws IllegalAccessException
@@ -2327,8 +2319,8 @@ public final class AutoTester {
    * Since getDeclaredFields() does not return inherited fields this method recursively collects all super class fields
    * and returns them.
    * 
-   * @param classToCheck
-   * @return
+   * @param clazz class to check for parent fields
+   * @return List<Field> 
    */
   private static List<Field> getInheritedFields(Class<?> clazz) {
     List<Field> fields = new ArrayList<>();
@@ -2347,8 +2339,8 @@ public final class AutoTester {
    * Since getDeclaredFields() does not return inherited protected fields this method recursively collects all super
    * class fields and returns them.
    * 
-   * @param classToCheck
-   * @return
+   * @param clazz super class to check for inherited methods 
+   * @return a ArrayList of inherited methods
    */
   private static ArrayList<Method> getInheritedProtectedMethods(Class<?> clazz) {
     ArrayList<Method> methods = new ArrayList<>();
