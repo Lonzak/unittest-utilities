@@ -20,6 +20,7 @@ package net.lonzak.common.unittest;
 import java.awt.Button;
 import java.awt.Color;
 import java.awt.Image;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.ByteArrayInputStream;
@@ -55,6 +56,14 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 //import java.time.Instant;
 //import java.time.LocalDate;
 //import java.time.LocalDateTime;
@@ -82,6 +91,11 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.regex.Pattern;
 
 import javax.activation.DataSource;
@@ -1731,55 +1745,105 @@ public final class AutoTester {
             argListLeft[parameterIndex] = new FileDataSource("/Test.cer");
             argListRight[parameterIndex] = new FileDataSource("/Test.cer");
         }
-//        else if (constructorParameterType.isAssignableFrom(LocalDate.class)) {
-//          paramListLeft[parameterIndex] = LocalDate.class;
-//          paramListRight[parameterIndex] = LocalDate.class;
-//
-//          argListLeft[parameterIndex] = LocalDate.of(2020, 02, 29);
-//          argListRight[parameterIndex] = LocalDate.of(2020, 02, 29);
-//        } else if (constructorParameterType.isAssignableFrom(LocalTime.class)) {
-//          paramListLeft[parameterIndex] = LocalTime.class;
-//          paramListRight[parameterIndex] = LocalTime.class;
-//
-//          argListLeft[parameterIndex] = LocalTime.of(23, 59, 59, 999999999);
-//          argListRight[parameterIndex] = LocalTime.of(23, 59, 59, 999999999);
-//        } else if (constructorParameterType.isAssignableFrom(LocalDateTime.class)) {
-//          paramListLeft[parameterIndex] = LocalDateTime.class;
-//          paramListRight[parameterIndex] = LocalDateTime.class;
-//
-//          argListLeft[parameterIndex] = LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
-//          argListRight[parameterIndex] = LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
-//        } else if (constructorParameterType.isAssignableFrom(ZoneId.class)) {
-//          paramListLeft[parameterIndex] = ZoneId.class;
-//          paramListRight[parameterIndex] = ZoneId.class;
-//
-//          argListLeft[parameterIndex] = ZoneId.systemDefault();
-//          argListRight[parameterIndex] = ZoneId.systemDefault();
-//        } else if (constructorParameterType.isAssignableFrom(ZoneOffset.class)) {
-//          paramListLeft[parameterIndex] = ZoneOffset.class;
-//          paramListRight[parameterIndex] = ZoneOffset.class;
-//
-//          argListLeft[parameterIndex] = ZoneOffset.ofHoursMinutesSeconds(17, 59, 59);
-//          argListRight[parameterIndex] = ZoneOffset.ofHoursMinutesSeconds(17, 59, 59);
-//        } else if (constructorParameterType.isAssignableFrom(DateTimeFormatter.class)) {
-//          paramListLeft[parameterIndex] = DateTimeFormatter.class;
-//          paramListRight[parameterIndex] = DateTimeFormatter.class;
-//
-//          argListLeft[parameterIndex] = DateTimeFormatter.BASIC_ISO_DATE;
-//          argListRight[parameterIndex] = DateTimeFormatter.BASIC_ISO_DATE;
-//        } else if (constructorParameterType.isAssignableFrom(Instant.class)) {
-//          paramListLeft[parameterIndex] = Instant.class;
-//          paramListRight[parameterIndex] = Instant.class;
-//
-//          argListLeft[parameterIndex] = Instant.ofEpochSecond(1, 999999999);
-//          argListRight[parameterIndex] = Instant.ofEpochSecond(1, 999999999);
-//        } else if (constructorParameterType.isAssignableFrom(ZonedDateTime.class)) {
-//          paramListLeft[parameterIndex] = ZonedDateTime.class;
-//          paramListRight[parameterIndex] = ZonedDateTime.class;
-//
-//          argListLeft[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
-//          argListRight[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
-//        } 
+        else if (constructorParameterType.isAssignableFrom(Rectangle.class)) {
+            paramListLeft[parameterIndex] = Rectangle.class;
+            paramListRight[parameterIndex] = Rectangle.class;
+
+            argListLeft[parameterIndex] = new Rectangle(1,1);
+            argListRight[parameterIndex] = new Rectangle(1,1);
+        }
+        else if (constructorParameterType.isAssignableFrom(AtomicBoolean.class)) {
+            paramListLeft[parameterIndex] = AtomicBoolean.class;
+            paramListRight[parameterIndex] = AtomicBoolean.class;
+
+            argListLeft[parameterIndex] = new AtomicBoolean(true);
+            argListRight[parameterIndex] = new AtomicBoolean(true);
+        }
+        else if (constructorParameterType.isAssignableFrom(AtomicInteger.class)) {
+            paramListLeft[parameterIndex] = AtomicInteger.class;
+            paramListRight[parameterIndex] = AtomicInteger.class;
+
+            argListLeft[parameterIndex] = new AtomicInteger(0);
+            argListRight[parameterIndex] = new AtomicInteger(0);
+        }
+        else if (constructorParameterType.isAssignableFrom(AtomicInteger.class)) {
+            paramListLeft[parameterIndex] = AtomicInteger.class;
+            paramListRight[parameterIndex] = AtomicInteger.class;
+
+            argListLeft[parameterIndex] = new AtomicInteger(0);
+            argListRight[parameterIndex] = new AtomicInteger(0);
+        }
+        else if (constructorParameterType.isAssignableFrom(AtomicIntegerArray.class)) {
+            paramListLeft[parameterIndex] = AtomicIntegerArray.class;
+            paramListRight[parameterIndex] = AtomicIntegerArray.class;
+
+            argListLeft[parameterIndex] = new AtomicIntegerArray(new int[] {0,1});
+            argListRight[parameterIndex] = new AtomicIntegerArray(new int[] {0,1});
+        }
+        else if (constructorParameterType.isAssignableFrom(AtomicLong.class)) {
+            paramListLeft[parameterIndex] = AtomicLong.class;
+            paramListRight[parameterIndex] = AtomicLong.class;
+
+            argListLeft[parameterIndex] = new AtomicLong(0L);
+            argListRight[parameterIndex] = new AtomicLong(0L);
+        }
+        else if (constructorParameterType.isAssignableFrom(AtomicLongArray.class)) {
+            paramListLeft[parameterIndex] = AtomicLongArray.class;
+            paramListRight[parameterIndex] = AtomicLongArray.class;
+
+            argListLeft[parameterIndex] = new AtomicLongArray(new long[] {0,1});
+            argListRight[parameterIndex] = new AtomicLongArray(new long[] {0,1});
+        }
+        //should be enabled when we stop using 
+        else if (constructorParameterType.isAssignableFrom(LocalDate.class)) {
+          paramListLeft[parameterIndex] = LocalDate.class;
+          paramListRight[parameterIndex] = LocalDate.class;
+
+          argListLeft[parameterIndex] = LocalDate.of(2020, 02, 29);
+          argListRight[parameterIndex] = LocalDate.of(2020, 02, 29);
+        } else if (constructorParameterType.isAssignableFrom(LocalTime.class)) {
+          paramListLeft[parameterIndex] = LocalTime.class;
+          paramListRight[parameterIndex] = LocalTime.class;
+
+          argListLeft[parameterIndex] = LocalTime.of(23, 59, 59, 999999999);
+          argListRight[parameterIndex] = LocalTime.of(23, 59, 59, 999999999);
+        } else if (constructorParameterType.isAssignableFrom(LocalDateTime.class)) {
+          paramListLeft[parameterIndex] = LocalDateTime.class;
+          paramListRight[parameterIndex] = LocalDateTime.class;
+
+          argListLeft[parameterIndex] = LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
+          argListRight[parameterIndex] = LocalDateTime.of(2020, 02, 29, 23, 59, 59, 999999999);
+        } else if (constructorParameterType.isAssignableFrom(ZoneId.class)) {
+          paramListLeft[parameterIndex] = ZoneId.class;
+          paramListRight[parameterIndex] = ZoneId.class;
+
+          argListLeft[parameterIndex] = ZoneId.systemDefault();
+          argListRight[parameterIndex] = ZoneId.systemDefault();
+        } else if (constructorParameterType.isAssignableFrom(ZoneOffset.class)) {
+          paramListLeft[parameterIndex] = ZoneOffset.class;
+          paramListRight[parameterIndex] = ZoneOffset.class;
+
+          argListLeft[parameterIndex] = ZoneOffset.ofHoursMinutesSeconds(17, 59, 59);
+          argListRight[parameterIndex] = ZoneOffset.ofHoursMinutesSeconds(17, 59, 59);
+        } else if (constructorParameterType.isAssignableFrom(DateTimeFormatter.class)) {
+          paramListLeft[parameterIndex] = DateTimeFormatter.class;
+          paramListRight[parameterIndex] = DateTimeFormatter.class;
+
+          argListLeft[parameterIndex] = DateTimeFormatter.BASIC_ISO_DATE;
+          argListRight[parameterIndex] = DateTimeFormatter.BASIC_ISO_DATE;
+        } else if (constructorParameterType.isAssignableFrom(Instant.class)) {
+          paramListLeft[parameterIndex] = Instant.class;
+          paramListRight[parameterIndex] = Instant.class;
+
+          argListLeft[parameterIndex] = Instant.ofEpochSecond(1, 999999999);
+          argListRight[parameterIndex] = Instant.ofEpochSecond(1, 999999999);
+        } else if (constructorParameterType.isAssignableFrom(ZonedDateTime.class)) {
+          paramListLeft[parameterIndex] = ZonedDateTime.class;
+          paramListRight[parameterIndex] = ZonedDateTime.class;
+
+          argListLeft[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
+          argListRight[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
+        } 
       else {
           throw new AssertionError("Unsupported class: " + constructorParameterType.getName()
               + " - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
