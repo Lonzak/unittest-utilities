@@ -1843,8 +1843,14 @@ public final class AutoTester {
 
           argListLeft[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
           argListRight[parameterIndex] = ZonedDateTime.of(2020, 02, 29, 23, 59, 59, 999999999, ZoneId.systemDefault());
-        } 
-      else {
+        } else if (constructorParameterType.isAssignableFrom( java.text.SimpleDateFormat.class)) {
+            paramListLeft[parameterIndex] = java.text.SimpleDateFormat.class;
+            paramListRight[parameterIndex] = java.text.SimpleDateFormat.class;
+
+            argListLeft[parameterIndex] = new java.text.SimpleDateFormat();
+            argListRight[parameterIndex] = new java.text.SimpleDateFormat();
+        }
+        else {
           throw new AssertionError("Unsupported class: " + constructorParameterType.getName()
               + " - report this to the unittest-utilities project! (And for now disable automatic testing for that class)");
         }
