@@ -43,6 +43,8 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -1849,6 +1851,13 @@ public final class AutoTester {
 
             argListLeft[parameterIndex] = new java.text.SimpleDateFormat();
             argListRight[parameterIndex] = new java.text.SimpleDateFormat();
+        }
+        else if (constructorParameterType.isAssignableFrom(Charset.class)) {
+            paramListLeft[parameterIndex] = Charset.class;
+            paramListRight[parameterIndex] = Charset.class;
+
+            argListLeft[parameterIndex] = StandardCharsets.UTF_8;
+            argListRight[parameterIndex] = StandardCharsets.UTF_8;
         }
         else {
           throw new AssertionError("Unsupported class: " + constructorParameterType.getName()
