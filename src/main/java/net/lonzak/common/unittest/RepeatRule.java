@@ -3,7 +3,7 @@
  *
  * Project Info: https://github.com/Lonzak/unittest-utilities
  * 
- * (C) Copyright 2012-2018 nepatec GmbH
+ * (C) Copyright 2012-2025 nepatec GmbH
  *
  * This file is part of unittest-utilities
  *
@@ -33,7 +33,6 @@ import org.junit.runners.model.Statement;
  * public void testMethodTest(){...}
  * }
  * </pre>
- * <p>
  * 
  * @author 225010
  *

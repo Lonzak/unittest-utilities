@@ -6,6 +6,8 @@
 	<artifactId>unittest-utilities</artifactId>
 	<name>Automating junit tests</name>
 	<version>3.0.0</version>
+
+	<description>Utilities for automated DTO tests</description>
  
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -79,7 +81,18 @@
 		</plugins>
 	</build>
 	
-	<description>Utilities for junit tests.</description>
+	<profiles>
+        <!-- To allow jdoc creation under jdk8-->
+        <profile>
+            <id>disable-java8-doclint</id>
+            <activation>
+                <jdk>[1.8,)</jdk>
+            </activation>
+            <properties>
+                <doclint>none</doclint>
+            </properties>
+        </profile>
+	</profiles>
 	
 	<dependencies>
 		<dependency>
