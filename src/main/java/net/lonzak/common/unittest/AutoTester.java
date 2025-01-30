@@ -33,6 +33,7 @@ import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -99,9 +100,10 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import javax.activation.DataSource;
-import javax.activation.FileDataSource;
+import jakarta.activation.DataSource;
+import jakarta.activation.FileDataSource;
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialException;
 import javax.xml.datatype.DatatypeConfigurationException;
@@ -556,8 +558,10 @@ public final class AutoTester {
       throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
 
     // all public methods are relevant
-    List<Method> publicMethods = Arrays.asList(dtoClass.getMethods());
+    List<Method> publicMethods = Arrays.stream(dtoClass.getMethods()).collect(Collectors.toCollection(ArrayList::new));
 
+    clearMethods(publicMethods);
+    
     // all protected methods are relevant
     ArrayList<Method> allMethods = getInheritedProtectedMethods(dtoClass);
 
@@ -590,11 +594,11 @@ public final class AutoTester {
           }
         }
     }
-
+    
     for (Method method : toRemove) {
       allMethods.remove(method);
     }
-
+    
     try {
       constructSetMethods(constructedClasses, dtoClass, constructedObjects, allMethods, implOfAbstractClasses,
           specialValues);
@@ -2188,12 +2192,19 @@ public final class AutoTester {
 
     // if no value is found in the direct class, check super classes
     List<Field> inheritedFields = getInheritedFields(dtoClass);
-
+    
     for (Field field : inheritedFields) {
-      if (StringUtils.uncapitalize(method.getName().substring(3)).equals(field.getName())) {
-        field.setAccessible(true);
-        return new ExtractionValue(true, field.get(constructedObject));
-      }
+    	if (StringUtils.uncapitalize(method.getName().substring(3)).equals(field.getName())) {
+    		try {
+    			field.setAccessible(true);
+    			return new ExtractionValue(true, field.get(constructedObject));
+    		}
+    		catch(InaccessibleObjectException ioe) {
+    	    	//ignore accessibility problems due to java module system
+    	    	System.err.println("Can not fully test class "+dtoClass.getName()+" due to accessability problems of "+field);
+    	    	return new ExtractionValue(false, field.get(constructedObject));
+    	    }
+    	}
     }
 
     return new ExtractionValue(false, null);
@@ -2410,6 +2421,19 @@ public final class AutoTester {
       fields.addAll(Arrays.asList(classToCheck.getSuperclass().getDeclaredFields()));
       classToCheck = classToCheck.getSuperclass();
     }
+    
+    //exclude special problematic fields because access is restricted
+    ArrayList<Field> toBeRemoved = new ArrayList<>();
+    for (Field field : fields) {
+    	if(field.getName().equals("stackTrace")) {
+    		toBeRemoved.add(field);
+    	} else if(field.getName().equals("finalize")) {
+    		toBeRemoved.add(field);
+    	} else if(field.getName().equals("clone")) {
+    		toBeRemoved.add(field);
+    	}
+    }
+    fields.removeAll(toBeRemoved);
 
     return fields;
   }
@@ -2433,12 +2457,20 @@ public final class AutoTester {
       classToCheck = classToCheck.getSuperclass();
     }
 
+    clearMethods(methods);
+   
     // clear public and private methods
     for (Method method : methods) {
-      if (Modifier.isProtected(method.getModifiers())) {
-        method.setAccessible(true);
-        protectedMethods.add(method);
-      }
+    	if (Modifier.isProtected(method.getModifiers())) {
+    		try {
+    			method.setAccessible(true);
+    			protectedMethods.add(method);
+    		}
+    		catch(InaccessibleObjectException ioe) {
+    			//ignore accessibility problems due to java module system
+    			System.err.println("Can not fully test class "+clazz.getName()+" due to accessability problems: "+method);
+    		}
+    	}
     }
 
     return protectedMethods;
@@ -2505,8 +2537,7 @@ public final class AutoTester {
         }
       }
       if (!foundMatch && value.getNumberOfArguments() != 0) {
-        System.err.println("The following special value " + specialValues
-            + " could not be matched to any constructor argument. Check the index and the data type.");
+        System.err.println("The special value can not be matched to a constructor argument. Check the index and the data type. Special values: " + specialValues);
       }
     }
   }
@@ -2544,6 +2575,21 @@ public final class AutoTester {
     }
 
     return cert;
+  }
+  
+  private static void clearMethods(List<Method> methods) {
+	  //exclude special problematic methods because access is restricted
+	  ArrayList<Method> toBeRemoved = new ArrayList<>();
+	  for (Method method : methods) {
+		  if((method.getName().equals("getStackTrace") || method.getName().equals("setStackTrace"))) {
+			  toBeRemoved.add(method);
+		  }	else if(method.getName().equals("finalize")) {
+			  toBeRemoved.add(method);
+		  } else if(method.getName().equals("clone")) {
+			  toBeRemoved.add(method);
+		  }
+	  }
+	  methods.removeAll(toBeRemoved);
   }
 
   static Byte getRandomByte() {

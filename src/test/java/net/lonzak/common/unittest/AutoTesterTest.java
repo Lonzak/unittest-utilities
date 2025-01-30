@@ -31,9 +31,6 @@ import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Test;
-import net.lonzak.common.unittest.AutoTester;
-import net.lonzak.common.unittest.PotentialErrorDetected;
-import net.lonzak.common.unittest.SpecialValueLocator;
 import net.lonzak.common.unittest.SpecialValueLocator.ConstructorValue;
 import net.lonzak.common.unittest.examples.classes.ArrayObject;
 import net.lonzak.common.unittest.examples.classes.Constructor;
