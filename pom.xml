@@ -5,7 +5,7 @@
 	<groupId>net.lonzak.common</groupId>
 	<artifactId>unittest-utilities</artifactId>
 	<name>Automating junit tests</name>
-	<version>3.0.0</version>
+	<version>3.0.1</version>
 
 	<description>Utilities for automated DTO tests</description>
  

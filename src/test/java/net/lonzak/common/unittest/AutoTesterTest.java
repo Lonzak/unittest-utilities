@@ -27,10 +27,12 @@ import java.math.BigDecimal;
 //import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Test;
+
 import net.lonzak.common.unittest.SpecialValueLocator.ConstructorValue;
 import net.lonzak.common.unittest.examples.classes.ArrayObject;
 import net.lonzak.common.unittest.examples.classes.Constructor;
@@ -43,6 +45,7 @@ import net.lonzak.common.unittest.examples.dtos.BlackNumber;
 import net.lonzak.common.unittest.examples.dtos.ExampleDTO;
 import net.lonzak.common.unittest.examples.dtos.RedNumber;
 import net.lonzak.common.unittest.examples.dtos.Triangle;
+import net.lonzak.common.unittest.examples.dtos.SpecialValueSetter;
 import net.lonzak.common.unittest.examples.enums.ClassOfColor;
 import net.lonzak.common.unittest.examples.enums.LineOfColor;
 import net.lonzak.common.unittest.examples.exceptions.DomainException;
@@ -125,19 +128,19 @@ public class AutoTesterTest {
     // primitive and java.lang types
     ArrayList<ConstructorValue> customValues = new ArrayList<>();
     customValues.add(new ConstructorValue(1, 1, 1));
-    customValues.add(new ConstructorValue(1, 1, new Integer(-1)));
+    customValues.add(new ConstructorValue(1, 1, Integer.valueOf(-1)));
     customValues.add(new ConstructorValue(1, 1, 10000000000L));
-    customValues.add(new ConstructorValue(1, 1, new Long(-10000000000L)));
+    customValues.add(new ConstructorValue(1, 1, Long.valueOf(-10000000000L)));
     customValues.add(new ConstructorValue(1, 1, -2.0f));
-    customValues.add(new ConstructorValue(1, 1, new Float(-3.0f)));
+    customValues.add(new ConstructorValue(1, 1, Float.valueOf(-3.0f)));
     customValues.add(new ConstructorValue(1, 1, -10.0d));
-    customValues.add(new ConstructorValue(1, 1, new Double(-11.0d)));
+    customValues.add(new ConstructorValue(1, 1, Double.valueOf(-11.0d)));
     customValues.add(new ConstructorValue(1, 1, (short) 1));
-    customValues.add(new ConstructorValue(1, 1, new Short((short) -1)));
+    customValues.add(new ConstructorValue(1, 1, Short.valueOf((short) -1)));
     customValues.add(new ConstructorValue(1, 1, 'c'));
-    customValues.add(new ConstructorValue(1, 1, new Character('C')));
+    customValues.add(new ConstructorValue(1, 1, Character.valueOf('C')));
     customValues.add(new ConstructorValue(1, 1, (byte) -1));
-    customValues.add(new ConstructorValue(1, 1, new Byte((byte) 1)));
+    customValues.add(new ConstructorValue(1, 1, Byte.valueOf((byte) 1)));
     customValues.add(new ConstructorValue(1, 1, true));
     customValues.add(new ConstructorValue(1, 1, Boolean.TRUE));
 
@@ -173,7 +176,7 @@ public class AutoTesterTest {
     // default constructor -> nothing happens
     customValues.add(new ConstructorValue(0, 1, 1));
     // invalid value Integer instead of int
-    customValues.add(new ConstructorValue(1, 1, new Integer(1)));
+    customValues.add(new ConstructorValue(1, 1, Integer.valueOf(1)));
 
     AutoTester.testClass(ConstructorFailures.class, null, null, new SpecialValueLocator(customValues));
 
@@ -187,7 +190,7 @@ public class AutoTesterTest {
     // default constructor
     customValues.add(new ConstructorValue(0, 1, 1));
     // invalid parameter index
-    customValues.add(new ConstructorValue(1, 0, new Integer(-1)));
+    customValues.add(new ConstructorValue(1, 0, Integer.valueOf(-1)));
     // inexistent constructor
     customValues.add(new ConstructorValue(2, 1, 10000000000L));
 
@@ -203,7 +206,7 @@ public class AutoTesterTest {
     // default constructor -> use for setters
     customValues.add(new ConstructorValue(0, 1, 1));
     // invalid parameter index
-    customValues.add(new ConstructorValue(1, 0, new Integer(-1)));
+    customValues.add(new ConstructorValue(1, 0, Integer.valueOf(-1)));
 
     AutoTester.testClass(ConstructorFailures.class, null, null, new SpecialValueLocator(customValues));
 
@@ -225,11 +228,11 @@ public class AutoTesterTest {
   public void testConstructorsMultiple() {
 
     ArrayList<Character> chars = new ArrayList<>();
-    chars.add(new Character('*'));
+    chars.add(Character.valueOf('*'));
 
     ArrayList<ConstructorValue> customValues = new ArrayList<>();
     customValues.add(new ConstructorValue(7, 1, 1));
-    customValues.add(new ConstructorValue(7, 2, new Double(2.0d)));
+    customValues.add(new ConstructorValue(7, 2, Double.valueOf(2.0d)));
     customValues.add(new ConstructorValue(7, 3, "byteArrayXY".getBytes()));
     customValues.add(new ConstructorValue(7, 4, "StringXY"));
     customValues.add(new ConstructorValue(7, 5, chars));
@@ -342,5 +345,16 @@ public class AutoTesterTest {
 	
 	int unsinedInt = Integer.parseInt(AutoTester.getRandomUnsignedIntAsString(Integer.MAX_VALUE));
 	Assert.assertTrue(unsinedInt>=0 && unsinedInt<=Integer.MAX_VALUE);
+  }
+  
+  @Test
+  public void automatedTests() {
+  	//SpecialValueLocator specialValues = new SpecialValueLocator(new ConstructorValue(0, 1, Integer.valueOf(256)));
+  	
+  	List<String> skippedValues = new ArrayList<>();
+  	skippedValues.add("encryptionStrength");
+  	
+  	AutoTester.testClass(SpecialValueSetter.class,null,skippedValues,null);
+  	//AutoTester.testClass(SpecialValueSetter.class,null,null,specialValues);
   }
 }

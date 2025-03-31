@@ -229,7 +229,7 @@ public final class AutoTester {
           createObjects(new ArrayList<Class<?>>(), dtoClass, implOfAbstractClasses, specialValues, true);
       // create all set methods and call them for each constructor
       if (equalsExists && hashCodeExists) {
-        checkEqualsAndHashCode(new ArrayList<Class<?>>(), dtoClass, constructors, implOfAbstractClasses, specialValues);
+        checkEqualsAndHashCode(new ArrayList<Class<?>>(), dtoClass, constructors, implOfAbstractClasses, ignorePropertiesForGetSetTest, specialValues);
       }
       checkGettersAndSetters(new ArrayList<Class<?>>(), dtoClass, constructors, implOfAbstractClasses,
           ignorePropertiesForGetSetTest, specialValues);
@@ -515,7 +515,7 @@ public final class AutoTester {
   }
 
   private static void checkEqualsAndHashCode(ArrayList<Class<?>> constructedClasses, Class<?> dtoClass,
-      HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses,
+      HashMap<Object, Object> constructedObjects, List<Class<?>> implOfAbstractClasses, List<String> ignorePropertiesForGetSetTest,
       SpecialValueLocator specialValues)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
 
@@ -535,7 +535,7 @@ public final class AutoTester {
 
     try {
       constructSetMethodsAndCheckEquals(constructedClasses, dtoClass, constructedObjects, methods,
-          implOfAbstractClasses, specialValues);
+          implOfAbstractClasses, ignorePropertiesForGetSetTest, specialValues);
     }
     catch (InvocationTargetException ite) {
       if (ite.getCause() instanceof NumberFormatException) {
@@ -2033,12 +2033,12 @@ public final class AutoTester {
   }
 
   private static void constructSetMethodsAndCheckEquals(ArrayList<Class<?>> constructedClasses, Class<?> dtoClass,
-      HashMap<Object, Object> constructedObjects, Method[] methods, List<Class<?>> implOfAbstractClasses,
+      HashMap<Object, Object> constructedObjects, Method[] methods, List<Class<?>> implOfAbstractClasses, List<String> ignorePropertiesForGetSetTest, 
       SpecialValueLocator specialValues)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
     for (int i = 0; i < methods.length; i++) {
 
-      if (methods[i].getName().startsWith("set")) {
+      if (methods[i].getName().startsWith("set") && !ignorePropertiesForGetSetTest.contains(StringUtils.uncapitalize(methods[i].getName().substring(3)))) {
 
         Method method = methods[i];
 
